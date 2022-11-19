@@ -16,18 +16,22 @@ enum StateType {
     Reported
 }
 
+struct PrinterData {
+    bytes32 printerId;
+    string displayName;
+    string[] queue;
+    uint256 price;
+    string location; // should change to coords??
+    StateType state;
+}
+
 contract Printer is Ownable {
-    // address public owner;
-    bytes32 public printerId;
-    string public displayName;
-    string[] public queue;
-    uint256 public price;
-    string public location; // should change to coords??
-    StateType public state;
+    mapping(bytes32 => PrinterData) public printerData;
+    bytes32[] public printerArr;
 
     constructor() {}
 
-    function open() external {}
+    function open(bytes32 _printerId) external {}
 
     function close() external {}
 
@@ -40,4 +44,14 @@ contract Printer is Ownable {
     function reportUpdate(address txid, string memory errorResult) external {}
 
     function printNext(address _printerId) external {}
+
+    function getAllPrinters() external {
+        /**
+         *  for id in printerArr {
+         *      mapping[id]
+         *  }
+         *
+         *  return [{},{},{}]
+         */
+    }
 }
