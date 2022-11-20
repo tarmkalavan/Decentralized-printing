@@ -49,10 +49,13 @@ contract Printer is Ownable {
 
     function notifyError(address txid) external {
         transactionContract = Transaction(txid);
+        require(printerData.state == StateType.Busy, "Invalid printerState");
+        require(transactionContract.transactionData.state == State.In_Process, "Invalid txState");
         transactionContract.updateTxState(State.Error);
     }
 
     function reportUpdate(address txid, string memory errorResult) external {
+        require(printerData.state == StateType.Reported, "Invalid printerState");
         transactionContract = Transaction(txid);
         if (keccak256(abi.encodePacked(errorResult)) == keccak256(abi.encodePacked("accept"))) {
             transactionContract.updateTxState(State.Error);
