@@ -12,7 +12,7 @@ enum State {
 
 struct TransactionData {
     string link_file;
-    uint[] list_of_pages;
+    uint16[] list_of_pages;
     State state;
 }
 
