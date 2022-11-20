@@ -1,9 +1,10 @@
+// SPDX-License-Identifier: Non-License
 pragma solidity ^0.8.17;
 
 import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 import "../node_modules/hardhat/console.sol";
 
-enum State {
+enum TxState {
     Submit,
     In_Process,
     Finished,
@@ -11,17 +12,20 @@ enum State {
 }
 
 struct TransactionData {
-    string link_file;
-    State state;
+    string linkFile;
+    TxState state;
 }
 
 contract Transaction is Ownable {
     TransactionData public transactionData;
-    constructor() {}
 
-    function updateTxState(State state) public {
+    constructor(string memory _linkFile) {
+        transactionData.linkFile = _linkFile;
+    }
+
+    function updateTxState(TxState state) public {
         transactionData.state = state;
     }
 
-    function send_queue() external returns(string memory) {}
+    function send_queue() external returns (string memory) {}
 }
