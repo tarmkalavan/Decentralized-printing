@@ -18,19 +18,13 @@ enum PrinterState {
     Reported
 }
 
-struct PrinterData {
+struct CentralServerData {
     // bytes32 printerId;
-    string displayName;
-    string printerName;
-    address[] queue; // address of "transaction" contract instance
-    uint256 price;
-    string location; // should change to coords??
-    address onGoing;
-    PrinterState state;
+    address[] printerList;
 }
 
-contract Printer is Ownable {
-    PrinterData public printerData;
+contract CentralServer {
+    CentralServerData public data;
 
     // address[] public printers;
     // mapping(address => uint32) private printerIdx;
@@ -38,29 +32,7 @@ contract Printer is Ownable {
     // constructor() {}
 
     // called by: printer owner
-    constructor(
-        string memory _displayName,
-        string memory _printerName,
-        uint256 _price,
-        string memory _location
-    ) {
-        require(_price > 0, "Price too low");
-
-        // require(printer.price == 0, "1 address is limited to only 1 printer.");
-
-        // if (printerData.price == 0) {
-        //     // new printer; need to add to the array
-        //     // --> note; existing printer just need to update the printerData
-        //     printerIdx[msg.sender] = uint32(printers.length);
-        //     printers.push(msg.sender);
-        // }
-
-        printerData.displayName = _displayName;
-        printerData.printerName = _printerName;
-        printerData.price = _price;
-        printerData.location = _location;
-        printerData.state = PrinterState.Ready;
-    }
+    constructor() {}
 
     // // for manually remove printer & 'repair' the printer
     // // called by: printer owner
@@ -78,10 +50,6 @@ contract Printer is Ownable {
     function addToQueue(address newTx) external {
         printerData.queue.push(newTx);
         // printerData.state = PrinterState.Busy;
-    }
-
-    function getOwner() external view returns (address) {
-        return owner();
     }
 
     function getFrontQueue() external returns (bool) {
