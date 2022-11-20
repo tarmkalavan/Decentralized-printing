@@ -5,7 +5,9 @@
 pragma solidity ^0.8.17;
 
 import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
+
 import "../node_modules/hardhat/console.sol";
+import "./Transaction.sol";
 
 enum StateType {
     Ready,
@@ -28,6 +30,7 @@ struct PrinterData {
 contract Printer is Ownable {
     mapping(bytes32 => PrinterData) public printerData;
     bytes32[] public printerArr;
+    Transaction public transactionContract;
 
     constructor() {}
 
@@ -35,13 +38,26 @@ contract Printer is Ownable {
 
     function close() external {}
 
-    function finished(address txid) external {}
+    function finished(address txid) external {
+        transactionContract = Transaction(txid);
+        transactionContract.updateTxState(State.Finished);
+    }
 
-    function repair() external {}
+    function repair() external {
+        
+    }
 
-    function notifyError() external {}
+    function notifyError(address txid) external {
+        transactionContract = Transaction(txid);
+        transactionContract.updateTxState(State.Error);
+    }
 
-    function reportUpdate(address txid, string memory errorResult) external {}
+    function reportUpdate(address txid, string memory errorResult) external {
+        transactionContract = Transaction(txid);
+        if (keccak256(abi.encodePacked(errorResult)) == keccak256(abi.encodePacked("accept"))) {
+            transactionContract.updateTxState(State.Error);
+        }
+    }
 
     function printNext(address _printerId) external {}
 
