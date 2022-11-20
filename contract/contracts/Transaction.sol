@@ -27,5 +27,9 @@ contract Transaction is Ownable {
         transactionData.state = state;
     }
 
+    function getTxState() external view returns (TxState) {
+        return transactionData.state;
+    }
+
     function send_queue() external returns (string memory) {}
 }
