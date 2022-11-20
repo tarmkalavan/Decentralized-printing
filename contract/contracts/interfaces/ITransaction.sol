@@ -9,15 +9,16 @@ enum TxState {
 }
 
 struct TransactionData {
-    string link_file;
-    uint[] list_of_pages;
+    string linkFile;
+    uint256 price;  // final total price (excluding gas)
     TxState state;
 }
-
 interface ITransaction {
+    function clearance() external;
+
+    function refund() external;
+
     function updateTxState(TxState state) external;
 
     function getTxState() external view returns (TxState);
-
-    function send_queue() external returns (string memory);
 }
