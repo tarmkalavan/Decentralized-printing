@@ -106,6 +106,8 @@ contract Printer is Ownable {
 
         // update printer
         printerData.state = PrinterState.Error;
+
+        transactionContract.refund();
     }
 
     function acceptError() external {
@@ -121,7 +123,7 @@ contract Printer is Ownable {
         printerData.state = PrinterState.Error;
 
         // refund
-        // transactionContract.refund();
+        transactionContract.refund();
     }
 
     function dismissError() external {
