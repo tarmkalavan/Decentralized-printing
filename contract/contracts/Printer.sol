@@ -32,12 +32,6 @@ struct PrinterData {
 contract Printer is Ownable {
     PrinterData public printerData;
 
-    // address[] public printers;
-    // mapping(address => uint32) private printerIdx;
-
-    // constructor() {}
-
-    // called by: printer owner
     constructor(
         string memory _displayName,
         string memory _printerName,
@@ -46,33 +40,12 @@ contract Printer is Ownable {
     ) {
         require(_price > 0, "Price too low");
 
-        // require(printer.price == 0, "1 address is limited to only 1 printer.");
-
-        // if (printerData.price == 0) {
-        //     // new printer; need to add to the array
-        //     // --> note; existing printer just need to update the printerData
-        //     printerIdx[msg.sender] = uint32(printers.length);
-        //     printers.push(msg.sender);
-        // }
-
         printerData.displayName = _displayName;
         printerData.printerName = _printerName;
         printerData.price = _price;
         printerData.location = _location;
         printerData.state = PrinterState.Ready;
     }
-
-    // // for manually remove printer & 'repair' the printer
-    // // called by: printer owner
-    // function removePrinter() external {
-    //     address owner = msg.sender;
-    //     uint32 toRemoveIdx = printerIdx[owner];
-    //     address lastPrinter = printers[printers.length - 1];
-
-    //     printers[toRemoveIdx] = lastPrinter; // replace the removed printer with last printer in array
-    //     printerIdx[lastPrinter] = toRemoveIdx; // update index to the new position
-    //     printerData[owner].state = PrinterState.Close; // update printer's state to close
-    // }
 
     // called by: user
     function addToQueue(address newTx) external {
@@ -82,6 +55,10 @@ contract Printer is Ownable {
 
     function getOwner() external view returns (address) {
         return owner();
+    }
+
+    function getPrinterState() external view returns (PrinterState) {
+        return printerData.state;
     }
 
     function getFrontQueue() external returns (bool) {
@@ -113,12 +90,6 @@ contract Printer is Ownable {
         // // update printer
         // PrinterData storage printer = printerData[msg.sender];
         printerData.state = PrinterState.Finished;
-
-        // // remove from queue
-        // for (uint i = 0; i < printer.queue.length - 1; i++) {
-        //     printer.queue[i] = printer.queue[i + 1];
-        // }
-        // printer.queue.pop();
     }
 
     function notifyError() external {
@@ -165,25 +136,4 @@ contract Printer is Ownable {
         require(msg.sender == printerData.onGoing, "invalid");
         printerData.state = PrinterState.Ready;
     }
-
-    // function getAllPrinters() external view returns (PrinterData[] memory) {
-    //     PrinterData[] memory data;
-    //     for (uint i = 0; i < printers.length; i++) {
-    //         data[i] = printerData[printers[i]];
-    //     }
-    //     return data;
-    // }
-
-    // function _removePrinter(address owner) internal {
-    //     uint32 toRemoveIdx = printerIdx[owner];
-    //     address lastPrinter = printers[printers.length - 1];
-
-    //     printers[toRemoveIdx] = lastPrinter; // replace the removed printer with last printer in array
-    //     printerIdx[lastPrinter] = toRemoveIdx; // update index to the new position
-    //     printerData[owner].state = PrinterState.Close; // update printer's state to close
-    // }
-
-    // receive() external payable {
-    //     revert("Not support sending Ethers to this contract directly.");
-    // }
 }

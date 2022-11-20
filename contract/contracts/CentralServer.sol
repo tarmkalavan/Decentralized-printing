@@ -4,19 +4,11 @@
 // It will be used by the Solidity compiler to validate its version.
 pragma solidity ^0.8.17;
 
-import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
+// import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";s
 
 import "../node_modules/hardhat/console.sol";
-import "./interfaces/ITransaction.sol";
-
-enum PrinterState {
-    Ready,
-    Busy,
-    Finished,
-    Close,
-    Error,
-    Reported
-}
+// import "./interfaces/ITransaction.sol";
+import "./interfaces/IPrinter.sol";
 
 struct CentralServerData {
     // bytes32 printerId;
@@ -24,7 +16,7 @@ struct CentralServerData {
 }
 
 contract CentralServer {
-    CentralServerData public data;
+    CentralServerData data;
 
     // address[] public printers;
     // mapping(address => uint32) private printerIdx;
@@ -34,104 +26,29 @@ contract CentralServer {
     // called by: printer owner
     constructor() {}
 
+    function checkAlreadyRegister(address adr) internal view returns (bool) {
+        for (uint i = 0; i < data.printerList.length; i++) {
+            if (data.printerList[i] == adr) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function registerPrinter(address newPrinter) external {
+        IPrinter printer = IPrinter(newPrinter);
+        require(
+            printer.getOwner() == msg.sender,
+            "you did not own this printer"
+        );
+        require(checkAlreadyRegister(newPrinter) == false, "Already register");
+        data.printerList.push(newPrinter);
+    }
+
     // // for manually remove printer & 'repair' the printer
     // // called by: printer owner
-    // function removePrinter() external {
-    //     address owner = msg.sender;
-    //     uint32 toRemoveIdx = printerIdx[owner];
-    //     address lastPrinter = printers[printers.length - 1];
-
-    //     printers[toRemoveIdx] = lastPrinter; // replace the removed printer with last printer in array
-    //     printerIdx[lastPrinter] = toRemoveIdx; // update index to the new position
-    //     printerData[owner].state = PrinterState.Close; // update printer's state to close
-    // }
-
-    // called by: user
-    function addToQueue(address newTx) external {
-        printerData.queue.push(newTx);
-        // printerData.state = PrinterState.Busy;
-    }
-
-    function getFrontQueue() external returns (bool) {
-        // PrinterData storage printer = printerData[msg.sender];
-        // return printer.queue;
-        // rewrite
-        require(
-            printerData.state == PrinterState.Ready,
-            "Invalid printerState"
-        );
-        if (printerData.queue.length > 0) {
-            printerData.onGoing = printerData.queue[0];
-            printerData.state = PrinterState.Busy;
-            for (uint i = 0; i < printerData.queue.length - 1; i++) {
-                printerData.queue[i] = printerData.queue[i + 1];
-            }
-            printerData.queue.pop();
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    function finished() external {
-        // update transaction
-        ITransaction transactionContract = ITransaction(printerData.onGoing);
-        transactionContract.updateTxState(TxState.Finished);
-
-        // // update printer
-        // PrinterData storage printer = printerData[msg.sender];
-        printerData.state = PrinterState.Finished;
-
-        // // remove from queue
-        // for (uint i = 0; i < printer.queue.length - 1; i++) {
-        //     printer.queue[i] = printer.queue[i + 1];
-        // }
-        // printer.queue.pop();
-    }
-
-    function notifyError() external {
-        ITransaction transactionContract = ITransaction(printerData.onGoing);
-        // PrinterData storage printer = printerData[msg.sender];
-
-        // update transaction
-        require(printerData.state == PrinterState.Busy, "Invalid printerState");
-        require(
-            transactionContract.getTxState() == TxState.In_Process,
-            "Invalid txState"
-        );
-        transactionContract.updateTxState(TxState.Error);
-
-        // update printer
-        printerData.state = PrinterState.Error;
-    }
-
-    function acceptError() external {
-        require(
-            printerData.state == PrinterState.Reported,
-            "Invalid printerState"
-        );
-        // update transaction state
-        ITransaction transactionContract = ITransaction(printerData.onGoing);
-        transactionContract.updateTxState(TxState.Error);
-
-        // update printer
-        printerData.state = PrinterState.Error;
-
-        // refund
-        // transactionContract.refund();
-    }
-
-    function dismissError() external {
-        require(
-            printerData.state == PrinterState.Reported,
-            "Invalid printerState"
-        );
-        printerData.state = PrinterState.Finished;
-    }
-
-    function clearance() external {
-        require(msg.sender == printerData.onGoing, "invalid");
-        printerData.state = PrinterState.Ready;
+    function removePrinter(address printerAddr) external {
+        IPrinter printer = IPrinter(printerAddr);
     }
 
     // function getAllPrinters() external view returns (PrinterData[] memory) {
