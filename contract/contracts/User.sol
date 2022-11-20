@@ -8,13 +8,16 @@ import "./Transaction.sol";
 contract User is Ownable {
     Printer public printerContract;
     Transaction public transactionContract;
-    constructor(address _printerAddr, address _transactionAddr) public {
-        printerContract = Printer(_printerAddr);
-        transactionContract = Transaction(_transactionAddr);
+    constructor() public {}
+
+    function order(address printerID, string memory linkFile) public {
+        printerContract = Printer(printerID);
     }
-
-    function order(address printerID, string memory linkFile) public {}
-    function report(address txid) public {}
-    function confirm(address txid) public {}
-
+    function report(address txid) public {
+        transactionContract = Transaction(txid);
+    }
+    function confirm(address txid) public {
+        transactionContract = Transaction(txid);
+        transactionContract.updateTxState(State.Finished);
+    }
 }
