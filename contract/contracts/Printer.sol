@@ -72,10 +72,13 @@ contract Printer is Ownable {
         if (printerData.queue.length > 0) {
             printerData.onGoing = printerData.queue[0];
             printerData.state = PrinterState.Busy;
+
+            // remove first element from array
             for (uint i = 0; i < printerData.queue.length - 1; i++) {
                 printerData.queue[i] = printerData.queue[i + 1];
             }
             printerData.queue.pop();
+
             return true;
         } else {
             return false;
@@ -87,8 +90,7 @@ contract Printer is Ownable {
         ITransaction transactionContract = ITransaction(printerData.onGoing);
         transactionContract.updateTxState(TxState.Finished);
 
-        // // update printer
-        // PrinterData storage printer = printerData[msg.sender];
+        // update printer
         printerData.state = PrinterState.Finished;
     }
 
@@ -137,5 +139,9 @@ contract Printer is Ownable {
     function clearance() external {
         require(msg.sender == printerData.onGoing, "invalid");
         printerData.state = PrinterState.Ready;
+    }
+
+    receive() external payable {
+        revert("Not support sending Eth to this contract directly.");
     }
 }
