@@ -27,6 +27,8 @@ struct PrinterData {
 interface IPrinter {
     function getOwner() external view returns (address);
 
+    function getPrice() external view returns (uint256);
+
     function getPrinterState() external view returns (PrinterState);
 
     function addToQueue(address newTx) external;

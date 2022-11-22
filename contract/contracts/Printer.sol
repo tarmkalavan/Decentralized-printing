@@ -57,6 +57,10 @@ contract Printer is Ownable {
         return owner();
     }
 
+    function getPrice() external view returns (uint256) {
+        return printerData.price;
+    }
+
     function getPrinterState() external view returns (PrinterState) {
         return printerData.state;
     }

@@ -15,7 +15,7 @@ enum TxState {
 
 struct TransactionData {
     string linkFile;
-    uint256 price; // final total price (excluding gas)
+    uint256 price;
     TxState state;
 }
 
@@ -26,12 +26,15 @@ contract Transaction is Ownable {
     constructor(
         string memory _linkFile,
         address _printer,
-        // address _fileOwner,
-        uint256 _price
+        uint256 _lenPage
     ) payable {
-        require(msg.value == _price, "Unmatched received ETH and price");
+        IPrinter printerContract = IPrinter(_printer);
+        require(
+            msg.value == _lenPage * printerContract.getPrice(),
+            "Unmatched received ETH and price"
+        );
         transactionData.linkFile = _linkFile;
-        transactionData.price = _price;
+        transactionData.price = _lenPage * printerContract.getPrice();
         transactionData.state = TxState.Submit;
         printer = IPrinter(_printer);
     }
