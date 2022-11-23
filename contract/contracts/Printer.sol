@@ -12,13 +12,11 @@ enum PrinterState {
     Ready,
     Busy,
     Finished,
-    Close,
     Error,
     Reported
 }
 
 struct PrinterData {
-    // bytes32 printerId;
     string displayName;
     string printerName;
     address[] queue; // address of "transaction" contract instance
@@ -48,6 +46,10 @@ contract Printer is Ownable {
 
     // called by: user
     function addToQueue(address newTx) external {
+        require(
+            printerData.state != PrinterState.Error,
+            "printer in error state"
+        );
         require(msg.sender == newTx, "Wrong sender");
         ITransaction transactionContract = ITransaction(newTx); // check if
         require(
@@ -59,25 +61,7 @@ contract Printer is Ownable {
         transactionContract.updateTxState(TxState.In_Queue);
     }
 
-    function getOwner() external view returns (address) {
-        return owner();
-    }
-
-    function getQueue() external view returns (address[] memory) {
-        return printerData.queue;
-    }
-
-    function getPrice() external view returns (uint256) {
-        return printerData.price;
-    }
-
-    function getPrinterState() external view returns (PrinterState) {
-        return printerData.state;
-    }
-
     function getFrontQueue() external onlyOwner returns (bool) {
-        // PrinterData storage printer = printerData[msg.sender];
-        // return printer.queue;
         // rewrite
         require(
             printerData.state == PrinterState.Ready,
@@ -105,6 +89,7 @@ contract Printer is Ownable {
     }
 
     function finished() external onlyOwner {
+        require(printerData.state == PrinterState.Busy, "invalid state");
         // valid state: in_process
         ITransaction transactionContract = ITransaction(printerData.onGoing);
         require(
@@ -121,7 +106,6 @@ contract Printer is Ownable {
 
     function notifyError() external onlyOwner {
         ITransaction transactionContract = ITransaction(printerData.onGoing);
-        // PrinterData storage printer = printerData[msg.sender];
 
         // update transaction
         require(printerData.state == PrinterState.Busy, "Invalid printerState");
@@ -162,6 +146,27 @@ contract Printer is Ownable {
         console.log("in printer clearance");
         require(msg.sender == printerData.onGoing, "invalid");
         printerData.state = PrinterState.Ready;
+    }
+
+    function getOwner() external view returns (address) {
+        return owner();
+    }
+
+    function getQueue() external view returns (address[] memory) {
+        return printerData.queue;
+    }
+
+    function getPrice() external view returns (uint256) {
+        return printerData.price;
+    }
+
+    function getPrinterState() external view returns (PrinterState) {
+        return printerData.state;
+    }
+
+    function updatePrinterState(PrinterState state) external {
+        require(msg.sender == printerData.onGoing, "invalid sender");
+        printerData.state = state;
     }
 
     receive() external payable {

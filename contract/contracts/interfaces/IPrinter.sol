@@ -31,6 +31,8 @@ interface IPrinter {
 
     function getPrinterState() external view returns (PrinterState);
 
+    function updatePrinterState(PrinterState state) external;
+
     function addToQueue(address newTx) external;
 
     function getFrontQueue() external returns (bool);

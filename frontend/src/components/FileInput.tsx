@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import styled from "styled-components";
+import { useNavigate } from "react-router-dom";
 
 interface IFileInputProps {
     price: number;
@@ -11,6 +12,7 @@ const FileInput: React.FunctionComponent<IFileInputProps> = (props) => {
     const [stateNum, setStateNum] = useState(0);
     const pdfUrl = useRef("");
     const lenPage = useRef(0);
+    const navigate = useNavigate();
 
     useEffect(() => {
         async function checkFile(url: string) {
@@ -106,6 +108,7 @@ const FileInput: React.FunctionComponent<IFileInputProps> = (props) => {
                             pdfUrl.current,
                             lenPage.current
                         );
+                        navigate("/printing");
                     }}
                 >
                     Finalized transaction

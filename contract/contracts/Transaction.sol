@@ -43,8 +43,15 @@ contract Transaction is Ownable {
         printer.addToQueue(address(this));
     }
 
+    function reportError() external onlyOwner {
+        require(
+            transactionData.state == TxState.Print_Finished,
+            "invalid state"
+        );
+        printer.updatePrinterState(PrinterState.Reported);
+    }
+
     function clearance() external onlyOwner {
-        // only customer
         require(
             transactionData.state == TxState.Print_Finished,
             "invalid state"
