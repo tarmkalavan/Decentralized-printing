@@ -31,9 +31,11 @@ const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
     const [state, setState] = useState(webState.NEWTRANSACTION);
     const [isContractLoaded, setIsContracLoaded] = useState(false);
     const [isSubmitSubmission, setSubmitSubmission] = useState(false);
+    const [tx, setTx] = useState("");
     const printersList = useRef<Printer[]>([]);
     const url = useRef("");
     const lenPage = useRef(0);
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
     function createNewTransaction(_url: string, _lenPage: number) {
         url.current = _url;
@@ -70,7 +72,16 @@ const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
 
             console.log(await contract.getOwner(), await signer.getAddress());
             await printerContract.addToQueue(contract.address);
+            setTx(contract.address);
             setState(webState.PRITING);
+            while (1) {
+                if ((await printerContract.getPrinterState()) === "Finished") {
+                    setState(webState.CONFRIMATION);
+                    break;
+                } else {
+                    await sleep(10000);
+                }
+            }
         }
 
         async function loadContract() {
@@ -114,6 +125,26 @@ const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
         }
     });
 
+    async function onConfirmClick() {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const accounts = await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner(accounts[0]);
+        const txContract = new ethers.Contract(tx, Abi.transaction, signer);
+
+        await txContract.clearance();
+        setState(webState.NEWTRANSACTION);
+    }
+
+    async function onRejectClick() {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const accounts = await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner(accounts[0]);
+        const txContract = new ethers.Contract(tx, Abi.transaction, signer);
+
+        await txContract.reportError();
+        setState(webState.NEWTRANSACTION);
+    }
+
     const [selectedNum, setSelectedNum] = useState(-1);
     let fileInput;
 
@@ -154,8 +185,12 @@ const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
                         everything is OK and press the button.
                     </h1>
                     <div className="flex flex-row space-x-4">
-                        <RejectButton>Reject</RejectButton>
-                        <ConfirmButton>Confirm</ConfirmButton>
+                        <RejectButton onClick={onRejectClick}>
+                            Reject
+                        </RejectButton>
+                        <ConfirmButton onClick={onConfirmClick}>
+                            Confirm
+                        </ConfirmButton>
                     </div>
                 </div>
             </div>
