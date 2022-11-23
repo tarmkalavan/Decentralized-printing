@@ -4,7 +4,7 @@
 // It will be used by the Solidity compiler to validate its version.
 pragma solidity ^0.8.17;
 
-import "../node_modules/hardhat/console.sol";
+import "hardhat/console.sol";
 import "./interfaces/IPrinter.sol";
 
 struct CentralServerData {
