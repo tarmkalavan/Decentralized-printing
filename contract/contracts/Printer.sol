@@ -4,8 +4,8 @@
 // It will be used by the Solidity compiler to validate its version.
 pragma solidity ^0.8.17;
 
-import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
-// import "hardhat/console.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "hardhat/console.sol";
 import "./interfaces/ITransaction.sol";
 
 enum PrinterState {
@@ -50,13 +50,12 @@ contract Printer is Ownable {
             printerData.state != PrinterState.Error,
             "printer in error state"
         );
-        require(msg.sender == newTx, "Wrong sender");
-        ITransaction transactionContract = ITransaction(newTx); // check if
+        ITransaction transactionContract = ITransaction(newTx);
+        require(msg.sender == transactionContract.getOwner(), "Wrong sender"); // only transaction owner can add their work to queue
         require(
             transactionContract.getTxState() == TxState.Submit,
             "Wrong TxState"
         );
-
         printerData.queue.push(newTx);
         transactionContract.updateTxState(TxState.In_Queue);
     }
@@ -143,8 +142,7 @@ contract Printer is Ownable {
     }
 
     function clearance() external {
-        // console.log("in printer clearance");
-        require(msg.sender == printerData.onGoing, "invalid");
+        require(msg.sender == printerData.onGoing, "invalid state");
         printerData.state = PrinterState.Ready;
     }
 
@@ -164,9 +162,9 @@ contract Printer is Ownable {
         return printerData.state;
     }
 
-    function updatePrinterState(PrinterState state) external {
+    function updatePrinterState(PrinterState _state) external {
         require(msg.sender == printerData.onGoing, "invalid sender");
-        printerData.state = state;
+        printerData.state = _state;
     }
 
     receive() external payable {

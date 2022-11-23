@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Non-License
 pragma solidity ^0.8.17;
 
-import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
-// import "hardhat/console.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "hardhat/console.sol";
 
 import "./interfaces/IPrinter.sol";
 
@@ -40,7 +40,7 @@ contract Transaction is Ownable {
         transactionData.state = TxState.Submit;
 
         // add to printer queue here?
-        printer.addToQueue(address(this));
+        // printer.addToQueue(address(this));
     }
 
     function reportError() external onlyOwner {
@@ -48,6 +48,7 @@ contract Transaction is Ownable {
             transactionData.state == TxState.Print_Finished,
             "invalid state"
         );
+
         printer.updatePrinterState(PrinterState.Reported);
     }
 
@@ -63,12 +64,15 @@ contract Transaction is Ownable {
         _transfer(printer.getOwner(), transactionData.price);
     }
 
-    function refund() external onlyOwner {
+    function refund() external {
         require(transactionData.state == TxState.Error, "invalid tx state");
         require(
             printer.getPrinterState() == PrinterState.Error,
             "invalid printer state"
         );
+        require(msg.sender == address(printer), "invalid sender");
+
+        transactionData.state = TxState.Done;
 
         _transfer(owner(), transactionData.price);
     }
