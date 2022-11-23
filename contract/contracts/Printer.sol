@@ -4,9 +4,8 @@
 // It will be used by the Solidity compiler to validate its version.
 pragma solidity ^0.8.17;
 
-import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
-
-import "../node_modules/hardhat/console.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "hardhat/console.sol";
 import "./interfaces/ITransaction.sol";
 
 enum PrinterState {
@@ -49,12 +48,23 @@ contract Printer is Ownable {
 
     // called by: user
     function addToQueue(address newTx) external {
+        require(msg.sender == newTx, "Wrong sender");
+        ITransaction transactionContract = ITransaction(newTx); // check if
+        require(
+            transactionContract.getTxState() == TxState.Submit,
+            "Wrong TxState"
+        );
+
         printerData.queue.push(newTx);
-        // printerData.state = PrinterState.Busy;
+        transactionContract.updateTxState(TxState.In_Queue);
     }
 
     function getOwner() external view returns (address) {
         return owner();
+    }
+
+    function getQueue() external view returns (address[] memory) {
+        return printerData.queue;
     }
 
     function getPrice() external view returns (uint256) {
@@ -65,7 +75,7 @@ contract Printer is Ownable {
         return printerData.state;
     }
 
-    function getFrontQueue() external returns (bool) {
+    function getFrontQueue() external onlyOwner returns (bool) {
         // PrinterData storage printer = printerData[msg.sender];
         // return printer.queue;
         // rewrite
@@ -75,6 +85,11 @@ contract Printer is Ownable {
         );
         if (printerData.queue.length > 0) {
             printerData.onGoing = printerData.queue[0];
+
+            ITransaction transactionContract = ITransaction(
+                printerData.onGoing
+            );
+            transactionContract.updateTxState(TxState.In_Process);
             printerData.state = PrinterState.Busy;
 
             // remove first element from array
@@ -89,25 +104,28 @@ contract Printer is Ownable {
         }
     }
 
-    function finished() external {
-        // update transaction
+    function finished() external onlyOwner {
+        // valid state: in_process
         ITransaction transactionContract = ITransaction(printerData.onGoing);
-        transactionContract.updateTxState(TxState.Finished);
+        require(
+            transactionContract.getTxState() == TxState.In_Process,
+            "Invalid txState"
+        );
+
+        // update transaction
+        transactionContract.updateTxState(TxState.Print_Finished);
 
         // update printer
         printerData.state = PrinterState.Finished;
     }
 
-    function notifyError() external {
+    function notifyError() external onlyOwner {
         ITransaction transactionContract = ITransaction(printerData.onGoing);
         // PrinterData storage printer = printerData[msg.sender];
 
         // update transaction
         require(printerData.state == PrinterState.Busy, "Invalid printerState");
-        require(
-            transactionContract.getTxState() == TxState.In_Process,
-            "Invalid txState"
-        );
+
         transactionContract.updateTxState(TxState.Error);
 
         // update printer
@@ -116,7 +134,7 @@ contract Printer is Ownable {
         transactionContract.refund();
     }
 
-    function acceptError() external {
+    function acceptError() external onlyOwner {
         require(
             printerData.state == PrinterState.Reported,
             "Invalid printerState"
@@ -132,7 +150,7 @@ contract Printer is Ownable {
         transactionContract.refund();
     }
 
-    function dismissError() external {
+    function dismissError() external onlyOwner {
         require(
             printerData.state == PrinterState.Reported,
             "Invalid printerState"
@@ -141,6 +159,7 @@ contract Printer is Ownable {
     }
 
     function clearance() external {
+        console.log("in printer clearance");
         require(msg.sender == printerData.onGoing, "invalid");
         printerData.state = PrinterState.Ready;
     }
