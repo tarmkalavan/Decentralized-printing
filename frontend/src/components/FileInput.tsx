@@ -1,236 +1,233 @@
 import React, { useEffect, useRef, useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import styled from "styled-components";
+import { useNavigate } from "react-router-dom";
 
 interface IFileInputProps {
-    price: number;
-    submitNewTransaction: (url: string, lenPage: number) => void;
+  price: number;
+  submitNewTransaction: (url: string, lenPage: number) => void;
 }
 
 const FileInput: React.FunctionComponent<IFileInputProps> = (props) => {
-    const [stateNum, setStateNum] = useState(0);
-    const pdfUrl = useRef("");
-    const lenPage = useRef(0);
+  const [stateNum, setStateNum] = useState(0);
+  const pdfUrl = useRef("");
+  const lenPage = useRef(0);
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        async function checkFile(url: string) {
-            try {
-                const existingPdfBytes = await fetch(url).then((res) =>
-                    res.arrayBuffer()
-                );
-                const pdfDoc = await PDFDocument.load(existingPdfBytes);
-                const pages = pdfDoc.getPages();
-                lenPage.current = pages.length;
-                setStateNum(2);
-            } catch (error) {
-                setStateNum(3);
-            }
-        }
-
-        if (stateNum === 1) {
-            checkFile(pdfUrl.current);
-        }
-    });
-
-    if (stateNum === 0) {
-        return (
-            <Content>
-                <Container>
-                    <Title>Enter your work's link</Title>
-                    <Input
-                        type="text"
-                        placeholder="Enter link here"
-                        onChange={(e) => {
-                            pdfUrl.current = e.currentTarget.value;
-                        }}
-                    />
-                </Container>
-                <Button
-                    onClick={() => {
-                        setStateNum(1);
-                    }}
-                >
-                    Check file
-                </Button>
-            </Content>
+  useEffect(() => {
+    async function checkFile(url: string) {
+      try {
+        const existingPdfBytes = await fetch(url).then((res) =>
+          res.arrayBuffer()
         );
-    } else if (stateNum === 1) {
-        return (
-            <Content>
-                <Container>
-                    <Title>Enter your work's link</Title>
-                    <Input
-                        type="text"
-                        placeholder="Enter link here"
-                        onChange={(e) => {
-                            pdfUrl.current = e.currentTarget.value;
-                        }}
-                    />
-                </Container>
-            </Content>
-        );
-    } else if (stateNum === 2) {
-        return (
-            <Content>
-                <Container>
-                    <Title>Enter your work's link</Title>
-                    <Input
-                        type="text"
-                        placeholder="Enter link here"
-                        onChange={(e) => {
-                            pdfUrl.current = e.currentTarget.value;
-                            setStateNum(0);
-                        }}
-                    />
-                </Container>
-                <RightContainer>
-                    <RightContext>
-                        <LabelVerySmallText>Total page</LabelVerySmallText>
-                        <LabelVerySmallText>
-                            {" "}
-                            {lenPage.current} pages{" "}
-                        </LabelVerySmallText>
-                    </RightContext>
-                    <RightContext>
-                        <LabelVerySmallText>Total price</LabelVerySmallText>
-                        <LabelVerySmallText>
-                            {" "}
-                            {lenPage.current}x{props.price} ={" "}
-                            {lenPage.current * props.price} ETH{" "}
-                        </LabelVerySmallText>
-                    </RightContext>
-                </RightContainer>
-                <Button
-                    onClick={() => {
-                        props.submitNewTransaction(
-                            pdfUrl.current,
-                            lenPage.current
-                        );
-                    }}
-                >
-                    Finalized transaction
-                </Button>
-            </Content>
-        );
-    } else {
-        return (
-            <Content>
-                <Container>
-                    <Title>Please enter REAL URL!!!!!!</Title>
-                    <Input
-                        type="text"
-                        placeholder="Enter link here"
-                        onChange={(e) => {
-                            pdfUrl.current = e.currentTarget.value;
-                        }}
-                    />
-                </Container>
-                <Button
-                    onClick={() => {
-                        setStateNum(1);
-                    }}
-                >
-                    Check file
-                </Button>
-            </Content>
-        );
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+        const pages = pdfDoc.getPages();
+        lenPage.current = pages.length;
+        setStateNum(2);
+      } catch (error) {
+        setStateNum(3);
+      }
     }
+
+    if (stateNum === 1) {
+      checkFile(pdfUrl.current);
+    }
+  });
+
+  if (stateNum === 0) {
+    return (
+      <Content>
+        <Container>
+          <Title>Enter your work's link</Title>
+          <Input
+            type="text"
+            placeholder="Enter link here"
+            onChange={(e) => {
+              pdfUrl.current = e.currentTarget.value;
+            }}
+          />
+        </Container>
+        <Button
+          onClick={() => {
+            setStateNum(1);
+          }}
+        >
+          Check file
+        </Button>
+      </Content>
+    );
+  } else if (stateNum === 1) {
+    return (
+      <Content>
+        <Container>
+          <Title>Enter your work's link</Title>
+          <Input
+            type="text"
+            placeholder="Enter link here"
+            onChange={(e) => {
+              pdfUrl.current = e.currentTarget.value;
+            }}
+          />
+        </Container>
+      </Content>
+    );
+  } else if (stateNum === 2) {
+    return (
+      <Content>
+        <Container>
+          <Title>Enter your work's link</Title>
+          <Input
+            type="text"
+            placeholder="Enter link here"
+            onChange={(e) => {
+              pdfUrl.current = e.currentTarget.value;
+              setStateNum(0);
+            }}
+          />
+        </Container>
+        <RightContainer>
+          <RightContext>
+            <LabelVerySmallText>Total page</LabelVerySmallText>
+            <LabelVerySmallText> {lenPage.current} pages </LabelVerySmallText>
+          </RightContext>
+          <RightContext>
+            <LabelVerySmallText>Total price</LabelVerySmallText>
+            <LabelVerySmallText>
+              {" "}
+              {lenPage.current}x{props.price} = {lenPage.current * props.price}{" "}
+              ETH{" "}
+            </LabelVerySmallText>
+          </RightContext>
+        </RightContainer>
+        <Button
+          onClick={() => {
+            props.submitNewTransaction(pdfUrl.current, lenPage.current);
+            navigate("/printing");
+          }}
+        >
+          Finalized transaction
+        </Button>
+      </Content>
+    );
+  } else {
+    return (
+      <Content>
+        <Container>
+          <Title>Please enter REAL URL!!!!!!</Title>
+          <Input
+            type="text"
+            placeholder="Enter link here"
+            onChange={(e) => {
+              pdfUrl.current = e.currentTarget.value;
+            }}
+          />
+        </Container>
+        <Button
+          onClick={() => {
+            setStateNum(1);
+          }}
+        >
+          Check file
+        </Button>
+      </Content>
+    );
+  }
 };
 
 export default FileInput;
 
 const RightContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    padding: 0px;
-    gap: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 0px;
+  gap: 16px;
 
-    /* Inside auto layout */
+  /* Inside auto layout */
 
-    flex: none;
-    flex-grow: 0;
+  flex: none;
+  flex-grow: 0;
 `;
 
 const RightContext = styled.div`
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0px;
-    gap: 141px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0px;
+  gap: 141px;
 
-    /* Inside auto layout */
+  /* Inside auto layout */
 
-    flex: none;
-    align-self: stretch;
-    flex-grow: 0;
+  flex: none;
+  align-self: stretch;
+  flex-grow: 0;
 `;
 
 const LabelVerySmallText = styled.p`
-    /* Bold/24px */
+  /* Bold/24px */
 
-    font-family: "Mina";
-    font-style: normal;
-    font-weight: 700;
-    font-size: 16px;
-    line-height: 38px;
+  font-family: "Mina";
+  font-style: normal;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 38px;
 
-    color: #000000;
+  color: #000000;
 `;
 
 const Container = styled.div`
-    /* Frame 1 */
+  /* Frame 1 */
 
-    /* Auto layout */
+  /* Auto layout */
 
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 0px;
-    gap: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 16px;
 
-    /* Inside auto layout */
+  /* Inside auto layout */
 
-    flex: none;
-    align-self: stretch;
-    flex-grow: 0;
+  flex: none;
+  align-self: stretch;
+  flex-grow: 0;
 `;
 
 const Button = styled.button`
-    /* Button */
+  /* Button */
 
-    /* Auto layout */
+  /* Auto layout */
 
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    padding: 8px 16px;
-    gap: 8px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 8px;
 
-    /* blue/400 */
+  /* blue/400 */
 
-    background: #649ad7;
-    border-radius: 8px;
+  background: #649ad7;
+  border-radius: 8px;
 
-    /* Regular/20px */
+  /* Regular/20px */
 
-    font-family: "Mina";
-    font-style: normal;
-    font-weight: 400;
-    font-size: 20px;
-    line-height: 32px;
-    /* identical to box height */
+  font-family: "Mina";
+  font-style: normal;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 32px;
+  /* identical to box height */
 
-    /* gray/50 */
+  /* gray/50 */
 
-    color: #f1f1f1;
+  color: #f1f1f1;
 
-    /* Inside auto layout */
+  /* Inside auto layout */
 
-    flex: none;
-    flex-grow: 0;
+  flex: none;
+  flex-grow: 0;
 `;
 
 const Input = styled.input`
@@ -261,31 +258,31 @@ const Input = styled.input`
     `;
 
 const Title = styled.p`
-    /* Bold/24px */
+  /* Bold/24px */
 
-    font-family: "Mina";
-    font-style: normal;
-    font-weight: 700;
-    font-size: 24px;
-    line-height: 38px;
+  font-family: "Mina";
+  font-style: normal;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 38px;
 
-    color: #000000;
+  color: #000000;
 `;
 
 const Content = styled.div`
-    /* Frame 5 */
+  /* Frame 5 */
 
-    /* Auto layout */
+  /* Auto layout */
 
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    padding: 0px;
-    gap: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 0px;
+  gap: 16px;
 
-    /* Inside auto layout */
+  /* Inside auto layout */
 
-    flex: none;
-    align-self: stretch;
-    flex-grow: 0;
+  flex: none;
+  align-self: stretch;
+  flex-grow: 0;
 `;
