@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: Non-License
 pragma solidity ^0.8.17;
 
-import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
-import "../node_modules/hardhat/console.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "hardhat/console.sol";
 
 import "./interfaces/IPrinter.sol";
 
 enum TxState {
     Submit,
+    In_Queue,
     In_Process,
-    Finished,
+    Print_Finished,
+    Done,
     Error
 }
 
@@ -28,20 +30,27 @@ contract Transaction is Ownable {
         address _printer,
         uint256 _lenPage
     ) payable {
-        IPrinter printerContract = IPrinter(_printer);
-        require(
-            msg.value == _lenPage * printerContract.getPrice(),
-            "Unmatched received ETH and price"
-        );
-        transactionData.linkFile = _linkFile;
-        transactionData.price = _lenPage * printerContract.getPrice();
-        transactionData.state = TxState.Submit;
         printer = IPrinter(_printer);
+        require(
+            msg.value == _lenPage * printer.getPrice(),
+            "Unmatched received ETH and price"
+        ); // !! CHECK PASS
+        transactionData.linkFile = _linkFile;
+        transactionData.price = _lenPage * printer.getPrice();
+        transactionData.state = TxState.Submit;
+
+        // add to printer queue here?
+        printer.addToQueue(address(this));
     }
 
     function clearance() external onlyOwner {
         // only customer
-        require(transactionData.state == TxState.Finished, "invalid state");
+        require(
+            transactionData.state == TxState.Print_Finished,
+            "invalid state"
+        );
+
+        transactionData.state = TxState.Done;
 
         printer.clearance();
         _transfer(printer.getOwner(), transactionData.price);
@@ -58,12 +67,17 @@ contract Transaction is Ownable {
     }
 
     function updateTxState(TxState state) external {
+        // !! CHECK PASSED
         require(msg.sender == address(printer), "invalid sender"); // only printer is allowed to change the state
         transactionData.state = state;
     }
 
     function getTxState() external view returns (TxState) {
         return transactionData.state;
+    }
+
+    function getOwner() external view returns (address) {
+        return owner();
     }
 
     function _transfer(address to, uint256 amt) internal {

@@ -3,16 +3,19 @@ pragma solidity ^0.8.17;
 
 enum TxState {
     Submit,
+    In_Queue,
     In_Process,
-    Finished,
+    Print_Finished,
+    Done,
     Error
 }
 
 struct TransactionData {
     string linkFile;
-    uint256 price;  // final total price (excluding gas)
+    uint256 price; // final total price (excluding gas)
     TxState state;
 }
+
 interface ITransaction {
     function clearance() external;
 
@@ -21,4 +24,6 @@ interface ITransaction {
     function updateTxState(TxState state) external;
 
     function getTxState() external view returns (TxState);
+
+    function getOwner() external view returns (address);
 }
