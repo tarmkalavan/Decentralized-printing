@@ -13,7 +13,6 @@ enum PrinterState {
 }
 
 struct PrinterData {
-    // bytes32 printerId;
     string displayName;
     string printerName;
     address[] queue; // address of "transaction" contract instance
@@ -30,7 +29,7 @@ interface IPrinter {
 
     function getPrinterState() external view returns (PrinterState);
 
-    function updatePrinterState(PrinterState state) external;
+    function updatePrinterState(PrinterState _state) external;
 
     function addToQueue(address newTx) external;
 
