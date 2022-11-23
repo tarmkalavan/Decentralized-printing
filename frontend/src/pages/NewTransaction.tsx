@@ -3,11 +3,18 @@ import styled from "styled-components";
 import PrinterTable from "../components/PrinterTable";
 import Tabbar from "../components/Tabbar";
 import FileInput from "../components/FileInput";
+import { FaCheck, FaPrint } from "react-icons/fa";
 import { Interface } from "ethers/lib/utils";
 import Abi from "../assets/Abi";
 // import { ethers } from "ethers";
 
 interface INewTransactionPageProps {}
+
+export enum webState {
+    NEWTRANSACTION = "newTransaction",
+    PRITING = "printing",
+    CONFRIMATION = "confirmation",
+}
 
 const printerInterface = new Interface(Abi.printer);
 
@@ -17,6 +24,8 @@ const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
     const submitNewTransaction = (url: string, lenPage: number) => {
         console.log(url, lenPage);
     };
+
+    const [state, setState] = useState(webState.NEWTRANSACTION);
 
     const [selectedNum, setSelectedNum] = useState(-1);
     let printerList = [
@@ -52,12 +61,45 @@ const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
             <FileInput
                 price={printerList[selectedNum].price}
                 submitNewTransaction={submitNewTransaction}
+                setState={setState}
             />
         );
     } else {
         fileInput = <div></div>;
     }
 
+    if (state === webState.PRITING) {
+        return (
+            <div className="h-screen">
+                <Tabbar />
+                <div className="flex flex-col justify-center h-screen items-center space-y-8 p-4">
+                    <FaPrint size={150} color="#4280cb" />
+                    <h1 className="text-[36px] font-medium font-mina">
+                        {" "}
+                        Your file is now printing. Please wait...{" "}
+                    </h1>
+                </div>
+            </div>
+        );
+    } else if (state === webState.CONFRIMATION) {
+        return (
+            <div className="flex flex-col h-screen">
+                <Tabbar />
+                <div className="flex flex-col h-screen justify-center items-center space-y-8 p-4">
+                    <FaCheck size={150} color="green" />
+                    <h1 className="text-[32px] font-mina font-medium">
+                        {" "}
+                        Successfully print your file. Please check that
+                        everything is OK and press the button.
+                    </h1>
+                    <div className="flex flex-row space-x-4">
+                        <RejectButton> Reject </RejectButton>
+                        <ConfirmButton>Confirm</ConfirmButton>
+                    </div>
+                </div>
+            </div>
+        );
+    }
     return (
         <Container>
             <Tabbar />
@@ -161,4 +203,76 @@ const LabelSmallText = styled.p`
     line-height: 38px;
 
     color: #000000;
+`;
+
+const ConfirmButton = styled.button`
+    /* Button */
+
+    /* Auto layout */
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 16px;
+    gap: 8px;
+
+    /* blue/400 */
+
+    background: #4280cb;
+    border-radius: 8px;
+
+    /* Regular/20px */
+
+    font-family: "Mina";
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 32px;
+    /* identical to box height */
+
+    /* gray/50 */
+
+    color: #f1f1f1;
+
+    /* Inside auto layout */
+
+    flex: none;
+    flex-grow: 0;
+`;
+
+const RejectButton = styled.button`
+    /* Button */
+
+    /* Auto layout */
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 16px;
+    gap: 8px;
+
+    /* blue/400 */
+
+    background: #d63e33;
+    border-radius: 8px;
+
+    /* Regular/20px */
+
+    font-family: "Mina";
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 32px;
+    /* identical to box height */
+
+    /* gray/50 */
+
+    color: #f1f1f1;
+
+    /* Inside auto layout */
+
+    flex: none;
+    flex-grow: 0;
 `;
