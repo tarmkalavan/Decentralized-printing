@@ -19,7 +19,7 @@ import (
 )
 
 func ClientConnect() (*ethclient.Client, error) {
-	client, err := ethclient.Dial("https://goerli.infura.io/v3/a11f8fff353047e9be4e3687f94e0544")
+	client, err := ethclient.Dial("http://localhost:8545")
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func main() {
 	fmt.Println(blockNum)
 
 	// for testing only
-	privateKeyText := ""
+	privateKeyText := "e03bdf931eb5c9d31636a1006109125933378053d9c60e4e0d54a14bf92dc591"
 
 	// fmt.Println(balance)
 	privateKey, err := crypto.HexToECDSA(privateKeyText)
@@ -72,7 +72,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	auth := bind.NewKeyedTransactor(privateKey)
+	chainID, err := client.ChainID(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
+	if err != nil {
+		log.Fatal(err)
+	}
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)       // in wei
 	auth.GasLimit = uint64(30000000) // in units
