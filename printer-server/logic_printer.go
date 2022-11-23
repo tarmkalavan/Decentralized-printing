@@ -12,13 +12,15 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/tarmkalavan/Decentralized-printing/printer-server/central_server"
 	"github.com/tarmkalavan/Decentralized-printing/printer-server/printer"
+	"github.com/tarmkalavan/Decentralized-printing/printer-server/transaction"
 )
 
 func ClientConnect(httpUrl string) (*ethclient.Client, error) {
@@ -65,85 +67,162 @@ func DownloadFile(URL, fileName string) error {
 	return nil
 }
 
-func LaunchNewPrinterInstance(client *ethclient.Client, privateKeyText string) (common.Address, *types.Transaction, *printer.Printer, error) {
+func GetNewTransactOpt(client *ethclient.Client, privateKeyText string) (*bind.TransactOpts, error) {
 	privateKey, err := crypto.HexToECDSA(privateKeyText)
 
 	if err != nil {
-		return common.Address{}, nil, nil, err
+		return nil, err
 	}
 
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		return common.Address{}, nil, nil, fmt.Errorf("error casting public key to ECDSA")
+		return nil, fmt.Errorf("error casting public key to ECDSA")
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		return common.Address{}, nil, nil, err
+		return nil, err
 	}
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		return common.Address{}, nil, nil, err
+		return nil, err
 	}
 
 	chainID, err := client.ChainID(context.Background())
 	if err != nil {
-		return common.Address{}, nil, nil, err
+		return nil, err
 	}
 
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
 	if err != nil {
-		return common.Address{}, nil, nil, err
+		return nil, err
 	}
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)      // in wei
 	auth.GasLimit = uint64(3000000) // in units
 	auth.GasPrice = gasPrice
 
-	_price := big.NewInt(1)
-	address, tx, instance, err := printer.DeployPrinter(auth, client, "Printer#1", "Printer-HLC", _price, "BKK")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return address, tx, instance, nil
+	return auth, nil
 }
 
 func main() {
 
-	fmt.Println("[printer-server]", "")
-	client, err := ClientConnect("http://localhost:7545")
+	fmt.Println("[printer-server]", " Connecting...")
+	client, err := ClientConnect("http://192.168.1.43:7545")
 
 	if err != nil {
 		fmt.Printf("Error")
 		return
 	}
 
-	isPrinterAvailable, printerName := IsPrinterAvailable()
+	// isPrinterAvailable, printerName := IsPrinterAvailable()
 
-	if isPrinterAvailable {
-		fmt.Println(printerName)
-		return
-	}
+	// if isPrinterAvailable {
+	// 	fmt.Println(printerName)
+	// 	return
+	// }
 
 	var privateKeyText string
-	fmt.Print("[printer-server]", "Please enter your private key of the account that have ETH: ")
+	fmt.Print("[printer-server]", " Please enter your private key of the account that have ETH: ")
 	fmt.Scanln(&privateKeyText)
 
 	// for testing only
-	// privateKeyText := "13482978186b307917623a14ea4f9f678855973ae08d006c1b91b1182a0bb1ed"
+	// privateKeyText := "e11cd829daf12845ed965ee89e5856ff62ca86ce425c2155f8bc66ae279cfb95"
 
-	address, tx, instance, err := LaunchNewPrinterInstance(client, privateKeyText)
+	auth, err := GetNewTransactOpt(client, privateKeyText)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
+	_price := big.NewInt(100)
+	address, tx, instance, err := printer.DeployPrinter(auth, client, "456", "123", _price, "BKK")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fmt.Println("[printer-server]", " Deploy new Printer contract")
+
+	time.Sleep(10000 * time.Millisecond)
+
 	_ = address
 	_ = tx
 	_ = instance
+
+	centralServerAddressHex := "0x6a2f3598549A86fD3e55EFdf2E74f36F32757A0B"
+	centralServerAddress := common.HexToAddress(centralServerAddressHex)
+	centralServer, err := central_server.NewCentralServer(centralServerAddress, client)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	auth, err = GetNewTransactOpt(client, privateKeyText)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	_, err = centralServer.RegisterPrinter(auth, address)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	printers, err := centralServer.GetPrinters(nil)
+	for _, e := range printers {
+		fmt.Println(e)
+	}
+	fmt.Println(len(printers))
+
+	lastTransaction := common.HexToAddress("0x0000000000000000000000000000000000000000")
+
+	for {
+
+		auth, err = GetNewTransactOpt(client, privateKeyText)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		_, err := instance.GetFrontQueue(auth)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		time.Sleep(10 * time.Second)
+		tc, err := instance.PrinterData(nil)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		if tc.OnGoing != lastTransaction {
+
+			_transaction, err := transaction.NewTransaction(tc.OnGoing, client)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			transactionData, err := _transaction.TransactionData(nil)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			err = DownloadFile(transactionData.LinkFile, "Doc.pdf")
+			if err != nil {
+				log.Fatalln(err)
+			}
+			cmd := exec.Command("lp", "Doc.pdf")
+			stdout, err := cmd.Output()
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+
+			_ = stdout
+
+			lastTransaction = tc.OnGoing
+			break
+		}
+
+		time.Sleep(10 * time.Second)
+	}
 
 	// fmt.Println(balance)
 

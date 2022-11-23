@@ -23,7 +23,7 @@ function App() {
                 Abi.printer,
                 provider
             );
-            const data = await printerContract;
+            const data = await printerContract.printerData;
             console.log(data);
             setLoadContract(true);
         }
