@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/tarmkalavan/Decentralized-printing/printer-server/printer"
@@ -64,58 +66,38 @@ func DownloadFile(URL, fileName string) error {
 	return nil
 }
 
-func main() {
-
-	client, err := ClientConnect()
-
-	if err != nil {
-		fmt.Printf("Error")
-		return
-	}
-
-	blockNum, err := client.BlockNumber(context.Background())
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(blockNum)
-
-	// for testing only
-	privateKeyText := "13482978186b307917623a14ea4f9f678855973ae08d006c1b91b1182a0bb1ed"
-
-	// fmt.Println(balance)
+func LaunchNewPrinterInstance(client *ethclient.Client, privateKeyText string) (common.Address, *types.Transaction, *printer.Printer, error) {
 	privateKey, err := crypto.HexToECDSA(privateKeyText)
 
 	if err != nil {
-		log.Fatal(err)
+		return common.Address{}, nil, nil, err
 	}
 
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		log.Fatal("error casting public key to ECDSA")
+		return common.Address{}, nil, nil, fmt.Errorf("error casting public key to ECDSA")
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		log.Fatal(err)
+		return common.Address{}, nil, nil, err
 	}
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Fatal(err)
+		return common.Address{}, nil, nil, err
 	}
 
 	chainID, err := client.ChainID(context.Background())
 	if err != nil {
-		log.Fatal(err)
+		return common.Address{}, nil, nil, err
 	}
 
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
 	if err != nil {
-		log.Fatal(err)
+		return common.Address{}, nil, nil, err
 	}
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)      // in wei
@@ -128,10 +110,31 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(address.Hex())   // 0x147B8eb97fD247D06C4006D269c90C1908Fb5D54
-	fmt.Println(tx.Hash().Hex()) // 0xdae8ba5444eefdc99f4d45cd0c4f24056cba6a02cefbf78066ef9f4188ff7dc0
+	return address, tx, instance, nil
+}
 
+func main() {
+
+	client, err := ClientConnect()
+
+	if err != nil {
+		fmt.Printf("Error")
+		return
+	}
+
+	// for testing only
+	privateKeyText := "13482978186b307917623a14ea4f9f678855973ae08d006c1b91b1182a0bb1ed"
+
+	address, tx, instance, err := LaunchNewPrinterInstance(client, privateKeyText)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	_ = address
+	_ = tx
 	_ = instance
+
+	// fmt.Println(balance)
 
 	// cmd := exec.Command("lpinfo", "-v")
 	// stdout, err := cmd.Output()
