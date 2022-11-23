@@ -108,6 +108,155 @@ func GetNewTransactOpt(client *ethclient.Client, privateKeyText string) (*bind.T
 	return auth, nil
 }
 
+func Working(client *ethclient.Client, privateKeyText string, lastTransaction common.Address, instance *printer.Printer) (common.Address, error) {
+	state, err := instance.GetPrinterState(nil)
+	if err != nil {
+		return lastTransaction, err
+	}
+
+	if state == 0 {
+		fmt.Println("[printer-server]", " refresh the queue")
+		auth, err := GetNewTransactOpt(client, privateKeyText)
+		if err != nil {
+			return lastTransaction, err
+		}
+		_, err = instance.GetFrontQueue(auth)
+		if err != nil {
+			return lastTransaction, err
+		}
+		time.Sleep(10 * time.Second)
+		tc, err := instance.PrinterData(nil)
+		if err != nil {
+			return lastTransaction, err
+		}
+
+		if tc.OnGoing != lastTransaction {
+			fmt.Println("[printer-server]", " printing work 0x"+tc.OnGoing.Hex())
+			auth, err = GetNewTransactOpt(client, privateKeyText)
+			if err != nil {
+				return lastTransaction, err
+			}
+			_, err = instance.UpdatePrinterState(auth, 1)
+			if err != nil {
+				return lastTransaction, err
+			}
+
+			_transaction, err := transaction.NewTransaction(tc.OnGoing, client)
+			if err != nil {
+				return lastTransaction, err
+			}
+
+			transactionData, err := _transaction.TransactionData(nil)
+			if err != nil {
+				return lastTransaction, err
+			}
+
+			err = DownloadFile(transactionData.LinkFile, "Doc.pdf")
+			if err != nil {
+				return lastTransaction, err
+			}
+			cmd := exec.Command("lp", "Doc.pdf")
+			stdout, err := cmd.Output()
+			if err != nil {
+				auth, err = GetNewTransactOpt(client, privateKeyText)
+				if err != nil {
+					return lastTransaction, err
+				}
+				_, err = instance.NotifyError(auth)
+				if err != nil {
+					return lastTransaction, err
+				}
+				return lastTransaction, err
+			}
+
+			_ = stdout
+			auth, err = GetNewTransactOpt(client, privateKeyText)
+			if err != nil {
+				return lastTransaction, err
+			}
+			_, err = _transaction.UpdateTxState(auth, 3)
+			if err != nil {
+				return lastTransaction, err
+			}
+			auth, err = GetNewTransactOpt(client, privateKeyText)
+			if err != nil {
+				return lastTransaction, err
+			}
+			_, err = instance.UpdatePrinterState(auth, 2)
+			if err != nil {
+				return lastTransaction, err
+			}
+			fmt.Println("[printer-server]", " work 0x"+tc.OnGoing.Hex()+" print complete")
+
+			return tc.OnGoing, nil
+		} else {
+			fmt.Println("[printer-server]", " Waiting..")
+			return lastTransaction, nil
+		}
+	} else if state == 2 {
+		tc, err := instance.PrinterData(nil)
+		if err != nil {
+			return lastTransaction, err
+		}
+		_transaction, err := transaction.NewTransaction(tc.OnGoing, client)
+		if err != nil {
+			return lastTransaction, err
+		}
+
+		transactionData, err := _transaction.TransactionData(nil)
+		if err != nil {
+			return lastTransaction, err
+		}
+
+		if transactionData.State == 4 {
+			auth, err := GetNewTransactOpt(client, privateKeyText)
+			if err != nil {
+				return lastTransaction, err
+			}
+			_, err = instance.UpdatePrinterState(auth, 0)
+			if err != nil {
+				return lastTransaction, err
+			}
+		} else {
+			fmt.Println("[printer-server]", " Waiting..")
+		}
+		return lastTransaction, nil
+
+	} else if state == 4 {
+		tc, err := instance.PrinterData(nil)
+		if err != nil {
+			return lastTransaction, err
+		}
+		var ans string
+		fmt.Print("[printer-server]", " Do you accept report from 0x"+tc.OnGoing.Hex()+"(Y/n): ")
+		fmt.Scanln(&ans)
+		if ans == "N" || ans == "n" {
+			auth, err := GetNewTransactOpt(client, privateKeyText)
+			if err != nil {
+				return lastTransaction, err
+			}
+			_, err = instance.DismissError(auth)
+			if err != nil {
+				return lastTransaction, err
+			}
+		} else {
+			auth, err := GetNewTransactOpt(client, privateKeyText)
+			if err != nil {
+				return lastTransaction, err
+			}
+			_, err = instance.AcceptError(auth)
+			if err != nil {
+				return lastTransaction, err
+			}
+		}
+		return lastTransaction, nil
+	} else {
+		fmt.Println("[printer-server]", " Waiting..")
+		return lastTransaction, nil
+	}
+
+}
+
 func main() {
 
 	fmt.Println("[printer-server]", " Connecting...")
@@ -118,24 +267,36 @@ func main() {
 		return
 	}
 
-	// isPrinterAvailable, printerName := IsPrinterAvailable()
+	isPrinterAvailable, printerName := IsPrinterAvailable()
 
-	// if isPrinterAvailable {
-	// 	fmt.Println(printerName)
-	// 	return
-	// }
+	if isPrinterAvailable {
+		fmt.Println(printerName)
+		return
+	}
 
 	var privateKeyText string
+	var displayName string
+	var location string
+	var price int64
+	var centralServerAddressHex string
 	fmt.Print("[printer-server]", " Please enter your private key of the account that have ETH: ")
 	fmt.Scanln(&privateKeyText)
+	fmt.Print("[printer-server]", " Please enter your display name: ")
+	fmt.Scanln(&displayName)
+	fmt.Print("[printer-server]", " Please enter your location: ")
+	fmt.Scanln(&location)
+	fmt.Print("[printer-server]", " Please enter your price per page (in Wei): ")
+	fmt.Scanln(&price)
+	fmt.Print("[printer-server]", " Please enter central server address (in Hex): ")
+	fmt.Scanln(&centralServerAddressHex)
 
 	auth, err := GetNewTransactOpt(client, privateKeyText)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	_price := big.NewInt(100)
-	address, tx, instance, err := printer.DeployPrinter(auth, client, "456", "123", _price, "BKK")
+	_price := big.NewInt(price)
+	address, tx, instance, err := printer.DeployPrinter(auth, client, displayName, printerName, _price, location)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -147,7 +308,7 @@ func main() {
 	_ = tx
 	_ = instance
 
-	centralServerAddressHex := "0xf27a721E7C970978AA5ea6655ef1e3FCC1e43fd6"
+	// centralServerAddressHex := "0xf27a721E7C970978AA5ea6655ef1e3FCC1e43fd6"
 	centralServerAddress := common.HexToAddress(centralServerAddressHex)
 	centralServer, err := central_server.NewCentralServer(centralServerAddress, client)
 
@@ -175,46 +336,16 @@ func main() {
 
 	for {
 
-		auth, err = GetNewTransactOpt(client, privateKeyText)
+		lastTransaction, err = Working(client, privateKeyText, lastTransaction, instance)
 		if err != nil {
-			log.Fatalln(err)
-		}
-		_, err := instance.GetFrontQueue(auth)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		time.Sleep(10 * time.Second)
-		tc, err := instance.PrinterData(nil)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		if tc.OnGoing != lastTransaction {
-
-			_transaction, err := transaction.NewTransaction(tc.OnGoing, client)
-			if err != nil {
-				log.Fatalln(err)
+			auth, e := GetNewTransactOpt(client, privateKeyText)
+			if e != nil {
+				log.Fatalln(e)
 			}
-
-			transactionData, err := _transaction.TransactionData(nil)
-			if err != nil {
-				log.Fatalln(err)
+			_, e = centralServer.RemovePrinter(auth, address)
+			if e != nil {
+				log.Fatalln(e)
 			}
-
-			err = DownloadFile(transactionData.LinkFile, "Doc.pdf")
-			if err != nil {
-				log.Fatalln(err)
-			}
-			cmd := exec.Command("lp", "Doc.pdf")
-			stdout, err := cmd.Output()
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-
-			_ = stdout
-
-			lastTransaction = tc.OnGoing
 			break
 		}
 
