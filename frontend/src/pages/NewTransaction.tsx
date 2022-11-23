@@ -7,6 +7,7 @@ import { FaCheck, FaPrint } from "react-icons/fa";
 import Abi from "../assets/Abi";
 import { ethers } from "ethers";
 import Bytecode from "../assets/Bytecode";
+import { sign } from "crypto";
 // import { ethers } from "ethers";
 
 interface INewTransactionPageProps {}
@@ -43,8 +44,8 @@ const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
     useEffect(() => {
         async function submitNewTransaction(_url: string, _lenPage: number) {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const accounts = await provider.send("eth_requestAccounts", []);
-            const signer = provider.getSigner(accounts[0]);
+            await provider.send("eth_requestAccounts", []);
+            const signer = provider.getSigner();
             console.log(await signer.getBalance());
 
             const factory = new ethers.ContractFactory(
