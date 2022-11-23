@@ -77,13 +77,14 @@ const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
             await provider.send("eth_requestAccounts", []);
 
             const contractAddress =
-                "0x6a2f3598549A86fD3e55EFdf2E74f36F32757A0B";
+                "0xf27a721E7C970978AA5ea6655ef1e3FCC1e43fd6";
             const centralServerContract = new ethers.Contract(
                 contractAddress,
                 Abi.centralServer,
                 provider
             );
             const addresses = await centralServerContract.getPrinters();
+            console.log(addresses);
             let tempPrinterData: Printer[] = [];
             addresses.forEach(async (address: string) => {
                 const printerContract = new ethers.Contract(
