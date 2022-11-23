@@ -38,7 +38,7 @@ const PrinterTable: React.FunctionComponent<IPrinterTableProps> = (props) => {
                         </div>
                         <div className="flex flex-row self-center space-x-2">
                             <h2 className="font-bold text-[18px]">
-                                {printer.price}ETH
+                                {printer.price} Wei
                             </h2>
                             <h2>per page</h2>
                         </div>

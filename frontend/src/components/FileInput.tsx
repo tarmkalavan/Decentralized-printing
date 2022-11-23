@@ -98,7 +98,7 @@ const FileInput: React.FunctionComponent<IFileInputProps> = (props) => {
                         <LabelVerySmallText>
                             {" "}
                             {lenPage.current}x{props.price} ={" "}
-                            {lenPage.current * props.price} ETH{" "}
+                            {lenPage.current * props.price} Wei{" "}
                         </LabelVerySmallText>
                     </RightContext>
                 </RightContainer>

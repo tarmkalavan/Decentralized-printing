@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import PrinterTable from "../components/PrinterTable";
 import Tabbar from "../components/Tabbar";
 import FileInput from "../components/FileInput";
 import { FaCheck, FaPrint } from "react-icons/fa";
-import { Interface } from "ethers/lib/utils";
 import Abi from "../assets/Abi";
+import { ethers } from "ethers";
+import Bytecode from "../assets/Bytecode";
 // import { ethers } from "ethers";
 
 interface INewTransactionPageProps {}
@@ -16,50 +17,86 @@ export enum webState {
     CONFRIMATION = "confirmation",
 }
 
-const printerInterface = new Interface(Abi.printer);
+export interface Printer {
+    id: string;
+    location: string;
+    name: string;
+    price: number;
+}
 
 const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
     props
 ) => {
-    const submitNewTransaction = (url: string, lenPage: number) => {
-        console.log(url, lenPage);
-    };
+    async function submitNewTransaction(url: string, lenPage: number) {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const accounts = await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner(accounts[1]);
+        console.log(await signer.getBalance());
+
+        const factory = new ethers.ContractFactory(
+            Abi.transaction,
+            Bytecode.transaction,
+            signer
+        );
+        console.log(printersList.current[selectedNum].price * lenPage);
+
+        const contract = factory.deploy(
+            url,
+            printersList.current[selectedNum].id,
+            lenPage,
+            { value: printersList.current[selectedNum].price * lenPage }
+        );
+        console.log(contract);
+        // setState(webState.PRITING);
+    }
 
     const [state, setState] = useState(webState.NEWTRANSACTION);
+    const [isContractLoaded, setIsContracLoaded] = useState(false);
+    const printersList = useRef<Printer[]>([]);
+
+    async function loadContract() {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+
+        const contractAddress = "0x6a2f3598549A86fD3e55EFdf2E74f36F32757A0B";
+        const centralServerContract = new ethers.Contract(
+            contractAddress,
+            Abi.centralServer,
+            provider
+        );
+        const addresses = await centralServerContract.getPrinters();
+        let tempPrinterData: Printer[] = [];
+        addresses.forEach(async (address: string) => {
+            const printerContract = new ethers.Contract(
+                address,
+                Abi.printer,
+                provider
+            );
+            const data = await printerContract.printerData();
+            tempPrinterData.push({
+                id: address,
+                location: data.location,
+                name: data.printerName,
+                price: parseInt(data.price._hex, 16),
+            });
+        });
+        printersList.current = tempPrinterData;
+        setIsContracLoaded(true);
+    }
+
+    useEffect(() => {
+        if (!isContractLoaded) {
+            loadContract();
+        }
+    });
 
     const [selectedNum, setSelectedNum] = useState(-1);
-    let printerList = [
-        {
-            id: "f2cc5a27-6638-4287-8bfe-e872390777be",
-            location: "OVG",
-            name: "Romeo Zulu Quebec Papa Golf Whiskey Yankee X-ray Kilo Victor Sierra Juliett",
-            price: 2.085,
-        },
-        {
-            id: "3daa46ce-b5e5-4830-8d10-de42d899e38f",
-            location: "EAR",
-            name: "Juliett Tango Echo Oscar Kilo Quebec Mike Victor India Golf X-ray Papa",
-            price: 4.5587,
-        },
-        {
-            id: "823e56d8-4126-4955-adc4-fad1134ff8ea",
-            location: "APU",
-            name: "Romeo Whiskey Quebec Sierra Bravo Echo Victor Zulu Juliett Uniform Foxtrot Lima Kilo Charlie Oscar Golf Mike Alfa November",
-            price: 1.7229,
-        },
-        {
-            id: "1fb87ed7-6726-422b-b21d-e72bce3e99ce",
-            location: "OBO",
-            name: "Charlie Bravo Zulu Golf Sierra Romeo Oscar Foxtrot Whiskey Hotel Victor Uniform Yankee Alfa Papa X-ray",
-            price: 1.1851,
-        },
-    ];
     let fileInput;
 
     if (selectedNum !== -1) {
         fileInput = (
             <FileInput
-                price={printerList[selectedNum].price}
+                price={printersList.current[selectedNum].price}
                 submitNewTransaction={submitNewTransaction}
                 setState={setState}
             />
@@ -93,13 +130,27 @@ const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
                         everything is OK and press the button.
                     </h1>
                     <div className="flex flex-row space-x-4">
-                        <RejectButton> Reject </RejectButton>
+                        <RejectButton>Reject</RejectButton>
                         <ConfirmButton>Confirm</ConfirmButton>
                     </div>
                 </div>
             </div>
         );
     }
+    let tableContent;
+    if (!isContractLoaded) {
+        tableContent = <div></div>;
+    } else {
+        tableContent = (
+            <PrinterTable
+                onSelectedPrinter={(index) => {
+                    setSelectedNum(index);
+                }}
+                printers={printersList.current}
+            />
+        );
+    }
+
     return (
         <Container>
             <Tabbar />
@@ -112,12 +163,7 @@ const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
                     <LabelSmallText>
                         Select printer you want to use
                     </LabelSmallText>
-                    <PrinterTable
-                        onSelectedPrinter={(index) => {
-                            setSelectedNum(index);
-                        }}
-                        printers={printerList}
-                    />
+                    {tableContent}
                 </TableContainer>
                 {fileInput}
             </Content>
