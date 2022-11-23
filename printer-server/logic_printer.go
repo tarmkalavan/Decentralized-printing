@@ -1,64 +1,141 @@
 package main
 
 import (
+	"context"
+	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/tarmkalavan/Decentralized-printing/printer-server/printer"
 )
 
-func main() {
-	cmd := exec.Command("lpinfo", "-v")
-	stdout, err := cmd.Output()
+func ClientConnect() (*ethclient.Client, error) {
+	client, err := ethclient.Dial("https://goerli.infura.io/v3/a11f8fff353047e9be4e3687f94e0544")
 	if err != nil {
-		fmt.Println(err.Error())
+		return nil, err
+	}
+
+	fmt.Println("we have a connection")
+	return client, nil
+}
+
+func main() {
+
+	client, err := ClientConnect()
+
+	if err != nil {
+		fmt.Printf("Error")
 		return
 	}
-	arrayout := strings.Split(string(stdout[:]), "\n")
-	// fmt.Println(string(stdout))
 
-	var menu int
-	for true {
-		fmt.Println("0 exit\n1 show printer\n2 enter (type printer name)\n3 Print")
-		fmt.Scanln(&menu)
-		if menu == 0 {
-			break
-		} else if menu == 1 {
-			if isAvailable(arrayout) {
-				fmt.Println("Printer available")
-			} else {
-				fmt.Println("Printer not available")
-			}
-		} else if menu == 3 {
-			if isAvailable(arrayout) {
-				fileName := "DocX.pdf"
-				fmt.Println("Enter file url")
-				var fileURL string
-				fmt.Scanln(&fileURL)
+	blockNum, err := client.BlockNumber(context.Background())
 
-				err := downloadFile(fileURL, fileName)
-				if err != nil {
-					log.Fatal(err)
-				}
-				fmt.Printf("File %s downlaod in current working directory", fileName)
-
-				cmd := exec.Command("lp", fileName)
-				stdout, err := cmd.Output()
-				if err != nil {
-					fmt.Println(err.Error())
-					return
-				}
-				fmt.Println(string(stdout))
-			} else {
-				fmt.Println("No printer")
-			}
-		}
-		// fmt.Println("---------------------------------------\n")
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	fmt.Println(blockNum)
+
+	// for testing only
+	privateKeyText := "c0b5b7ef9d8479f4b29515d3bacd0628acef153f7e665bc6d1d97b8e95beb637"
+
+	// fmt.Println(balance)
+	privateKey, err := crypto.HexToECDSA(privateKeyText)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("error casting public key to ECDSA")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	auth := bind.NewKeyedTransactor(privateKey)
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0)       // in wei
+	auth.GasLimit = uint64(30000000) // in units
+	auth.GasPrice = gasPrice
+
+	_price := big.NewInt(1)
+	address, tx, instance, err := printer.DeployPrinter(auth, client, "Printer#1", "Printer-HLC", _price, "BKK")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(address.Hex())   // 0x147B8eb97fD247D06C4006D269c90C1908Fb5D54
+	fmt.Println(tx.Hash().Hex()) // 0xdae8ba5444eefdc99f4d45cd0c4f24056cba6a02cefbf78066ef9f4188ff7dc0
+
+	_ = instance
+
+	// cmd := exec.Command("lpinfo", "-v")
+	// stdout, err := cmd.Output()
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
+	// arrayout := strings.Split(string(stdout[:]), "\n")
+	// // fmt.Println(string(stdout))
+
+	// var menu int
+	// for true {
+	// 	fmt.Println("0 exit\n1 show printer\n2 enter (type printer name)\n3 Print")
+	// 	fmt.Scanln(&menu)
+	// 	if menu == 0 {
+	// 		break
+	// 	} else if menu == 1 {
+	// 		if isAvailable(arrayout) {
+	// 			fmt.Println("Printer available")
+	// 		} else {
+	// 			fmt.Println("Printer not available")
+	// 		}
+	// 	} else if menu == 3 {
+	// 		if isAvailable(arrayout) {
+	// 			fileName := "DocX.pdf"
+	// 			fmt.Println("Enter file url")
+	// 			var fileURL string
+	// 			fmt.Scanln(&fileURL)
+
+	// 			err := downloadFile(fileURL, fileName)
+	// 			if err != nil {
+	// 				log.Fatal(err)
+	// 			}
+	// 			fmt.Printf("File %s downlaod in current working directory", fileName)
+
+	// 			cmd := exec.Command("lp", fileName)
+	// 			stdout, err := cmd.Output()
+	// 			if err != nil {
+	// 				fmt.Println(err.Error())
+	// 				return
+	// 			}
+	// 			fmt.Println(string(stdout))
+	// 		} else {
+	// 			fmt.Println("No printer")
+	// 		}
+	// 	}
+	// 	// fmt.Println("---------------------------------------\n")
+	// }
 }
 
 func isAvailable(arrayout []string) bool {
