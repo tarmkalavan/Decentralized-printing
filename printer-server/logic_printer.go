@@ -19,13 +19,49 @@ import (
 )
 
 func ClientConnect() (*ethclient.Client, error) {
-	client, err := ethclient.Dial("http://localhost:8545")
+	client, err := ethclient.Dial("http://localhost:7545")
 	if err != nil {
 		return nil, err
 	}
 
 	fmt.Println("we have a connection")
 	return client, nil
+}
+
+func IsAvailable(arrayout []string) bool {
+	for _, e := range arrayout {
+		if strings.Split(e, " ")[0] == "direct" {
+			return true
+		}
+	}
+	return false
+}
+
+func DownloadFile(URL, fileName string) error {
+	//Get the response bytes from the url
+	response, err := http.Get(URL)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != 200 {
+		return errors.New("Received non 200 response code")
+	}
+	//Create a empty file
+	file, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	//Write the bytes to the fiel
+	_, err = io.Copy(file, response.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func main() {
@@ -46,7 +82,7 @@ func main() {
 	fmt.Println(blockNum)
 
 	// for testing only
-	privateKeyText := "e03bdf931eb5c9d31636a1006109125933378053d9c60e4e0d54a14bf92dc591"
+	privateKeyText := "13482978186b307917623a14ea4f9f678855973ae08d006c1b91b1182a0bb1ed"
 
 	// fmt.Println(balance)
 	privateKey, err := crypto.HexToECDSA(privateKeyText)
@@ -82,8 +118,8 @@ func main() {
 		log.Fatal(err)
 	}
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)       // in wei
-	auth.GasLimit = uint64(30000000) // in units
+	auth.Value = big.NewInt(0)      // in wei
+	auth.GasLimit = uint64(3000000) // in units
 	auth.GasPrice = gasPrice
 
 	_price := big.NewInt(1)
@@ -144,40 +180,4 @@ func main() {
 	// 	}
 	// 	// fmt.Println("---------------------------------------\n")
 	// }
-}
-
-func isAvailable(arrayout []string) bool {
-	for _, e := range arrayout {
-		if strings.Split(e, " ")[0] == "direct" {
-			return true
-		}
-	}
-	return false
-}
-
-func downloadFile(URL, fileName string) error {
-	//Get the response bytes from the url
-	response, err := http.Get(URL)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != 200 {
-		return errors.New("Received non 200 response code")
-	}
-	//Create a empty file
-	file, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	//Write the bytes to the fiel
-	_, err = io.Copy(file, response.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
