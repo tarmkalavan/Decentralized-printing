@@ -111,7 +111,7 @@ func GetNewTransactOpt(client *ethclient.Client, privateKeyText string) (*bind.T
 func main() {
 
 	fmt.Println("[printer-server]", " Connecting...")
-	client, err := ClientConnect("http://192.168.1.43:7545")
+	client, err := ClientConnect("http://192.168.1.42:8501")
 
 	if err != nil {
 		fmt.Printf("Error")
@@ -128,9 +128,6 @@ func main() {
 	var privateKeyText string
 	fmt.Print("[printer-server]", " Please enter your private key of the account that have ETH: ")
 	fmt.Scanln(&privateKeyText)
-
-	// for testing only
-	// privateKeyText := "e11cd829daf12845ed965ee89e5856ff62ca86ce425c2155f8bc66ae279cfb95"
 
 	auth, err := GetNewTransactOpt(client, privateKeyText)
 	if err != nil {
@@ -150,7 +147,7 @@ func main() {
 	_ = tx
 	_ = instance
 
-	centralServerAddressHex := "0x6a2f3598549A86fD3e55EFdf2E74f36F32757A0B"
+	centralServerAddressHex := "0xf27a721E7C970978AA5ea6655ef1e3FCC1e43fd6"
 	centralServerAddress := common.HexToAddress(centralServerAddressHex)
 	centralServer, err := central_server.NewCentralServer(centralServerAddress, client)
 
