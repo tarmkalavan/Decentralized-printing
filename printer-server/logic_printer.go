@@ -122,6 +122,13 @@ func main() {
 		return
 	}
 
+	isPrinterAvailable, printerName := IsPrinterAvailable()
+
+	if isPrinterAvailable {
+		fmt.Println(printerName)
+		return
+	}
+
 	var privateKeyText string
 	fmt.Print("[printer-server]", "Please enter your private key of the account that have ETH: ")
 	fmt.Scanln(&privateKeyText)
@@ -132,12 +139,6 @@ func main() {
 	address, tx, instance, err := LaunchNewPrinterInstance(client, privateKeyText)
 	if err != nil {
 		log.Fatalln(err)
-	}
-
-	isPrinterAvailable, printerName := IsPrinterAvailable()
-
-	if isPrinterAvailable {
-		fmt.Println(printerName)
 	}
 
 	_ = address
