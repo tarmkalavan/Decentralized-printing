@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -130,6 +131,12 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	isPrinterAvailable, printerName := IsPrinterAvailable()
+
+	if isPrinterAvailable {
+		fmt.Println(printerName)
+	}
+
 	_ = address
 	_ = tx
 	_ = instance
@@ -183,4 +190,26 @@ func main() {
 	// 	}
 	// 	// fmt.Println("---------------------------------------\n")
 	// }
+}
+
+func IsPrinterAvailable() (bool, string) {
+	cmd := exec.Command("lpinfo", "-v")
+	stdout, err := cmd.Output()
+	if err != nil {
+		fmt.Println(err.Error())
+		return false, err.Error()
+	}
+	arrayout := strings.Split(string(stdout[:]), "\n")
+	for _, e := range arrayout {
+		if true || strings.Split(e, " ")[0] == "direct" {
+			cmd := exec.Command("lpstat", "-d")
+			stdout_stat, err := cmd.Output()
+			if err != nil {
+				fmt.Println(err.Error())
+				return false, err.Error()
+			}
+			return true, string(stdout_stat)
+		}
+	}
+	return false, err.Error()
 }
