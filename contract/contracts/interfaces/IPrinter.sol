@@ -8,7 +8,6 @@ enum PrinterState {
     Ready,
     Busy,
     Finished,
-    Close,
     Error,
     Reported
 }
