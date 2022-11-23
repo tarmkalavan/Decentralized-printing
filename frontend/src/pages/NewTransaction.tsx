@@ -27,66 +27,88 @@ export interface Printer {
 const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
     props
 ) => {
-    async function submitNewTransaction(url: string, lenPage: number) {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const accounts = await provider.send("eth_requestAccounts", []);
-        const signer = provider.getSigner(accounts[1]);
-        console.log(await signer.getBalance());
-
-        const factory = new ethers.ContractFactory(
-            Abi.transaction,
-            Bytecode.transaction,
-            signer
-        );
-        console.log(printersList.current[selectedNum].price * lenPage);
-
-        const contract = factory.deploy(
-            url,
-            printersList.current[selectedNum].id,
-            lenPage,
-            { value: printersList.current[selectedNum].price * lenPage }
-        );
-        console.log(contract);
-        // setState(webState.PRITING);
-    }
-
     const [state, setState] = useState(webState.NEWTRANSACTION);
     const [isContractLoaded, setIsContracLoaded] = useState(false);
+    const [isSubmitSubmission, setSubmitSubmission] = useState(false);
     const printersList = useRef<Printer[]>([]);
+    const url = useRef("");
+    const lenPage = useRef(0);
 
-    async function loadContract() {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-
-        const contractAddress = "0x6a2f3598549A86fD3e55EFdf2E74f36F32757A0B";
-        const centralServerContract = new ethers.Contract(
-            contractAddress,
-            Abi.centralServer,
-            provider
-        );
-        const addresses = await centralServerContract.getPrinters();
-        let tempPrinterData: Printer[] = [];
-        addresses.forEach(async (address: string) => {
-            const printerContract = new ethers.Contract(
-                address,
-                Abi.printer,
-                provider
-            );
-            const data = await printerContract.printerData();
-            tempPrinterData.push({
-                id: address,
-                location: data.location,
-                name: data.printerName,
-                price: parseInt(data.price._hex, 16),
-            });
-        });
-        printersList.current = tempPrinterData;
-        setIsContracLoaded(true);
+    function createNewTransaction(_url: string, _lenPage: number) {
+        url.current = _url;
+        lenPage.current = _lenPage;
+        setSubmitSubmission(true);
     }
 
     useEffect(() => {
+        async function submitNewTransaction(_url: string, _lenPage: number) {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const accounts = await provider.send("eth_requestAccounts", []);
+            const signer = provider.getSigner(accounts[0]);
+            console.log(await signer.getBalance());
+
+            const factory = new ethers.ContractFactory(
+                Abi.transaction,
+                Bytecode.transaction,
+                signer
+            );
+            console.log(printersList.current[selectedNum].price * _lenPage);
+
+            const contract = await factory.deploy(
+                _url,
+                printersList.current[selectedNum].id,
+                _lenPage,
+                { value: printersList.current[selectedNum].price * _lenPage }
+            );
+
+            const printerContract = new ethers.Contract(
+                printersList.current[selectedNum].id,
+                Abi.printer,
+                signer
+            );
+
+            console.log(await contract.getOwner(), await signer.getAddress());
+            await printerContract.addToQueue(contract.address);
+            setState(webState.PRITING);
+        }
+
+        async function loadContract() {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+
+            const contractAddress =
+                "0x6a2f3598549A86fD3e55EFdf2E74f36F32757A0B";
+            const centralServerContract = new ethers.Contract(
+                contractAddress,
+                Abi.centralServer,
+                provider
+            );
+            const addresses = await centralServerContract.getPrinters();
+            let tempPrinterData: Printer[] = [];
+            addresses.forEach(async (address: string) => {
+                const printerContract = new ethers.Contract(
+                    address,
+                    Abi.printer,
+                    provider
+                );
+                const data = await printerContract.printerData();
+                tempPrinterData.push({
+                    id: address,
+                    location: data.location,
+                    name: data.printerName,
+                    price: parseInt(data.price._hex, 16),
+                });
+            });
+            printersList.current = tempPrinterData;
+            setIsContracLoaded(true);
+        }
+
         if (!isContractLoaded) {
             loadContract();
+        }
+
+        if (isSubmitSubmission && state === webState.NEWTRANSACTION) {
+            submitNewTransaction(url.current, lenPage.current);
         }
     });
 
@@ -97,7 +119,7 @@ const NewTransactionPage: React.FunctionComponent<INewTransactionPageProps> = (
         fileInput = (
             <FileInput
                 price={printersList.current[selectedNum].price}
-                submitNewTransaction={submitNewTransaction}
+                submitNewTransaction={createNewTransaction}
                 setState={setState}
             />
         );

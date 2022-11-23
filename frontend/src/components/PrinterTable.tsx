@@ -24,6 +24,7 @@ const PrinterTable: React.FunctionComponent<IPrinterTableProps> = (props) => {
             {props.printers.map((printer, index) => {
                 return (
                     <Row
+                        key={index + 4}
                         onClick={() => {
                             setSelectedNum(index);
                         }}
