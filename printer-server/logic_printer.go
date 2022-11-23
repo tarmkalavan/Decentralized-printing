@@ -21,13 +21,11 @@ import (
 	"github.com/tarmkalavan/Decentralized-printing/printer-server/printer"
 )
 
-func ClientConnect() (*ethclient.Client, error) {
-	client, err := ethclient.Dial("http://localhost:7545")
+func ClientConnect(httpUrl string) (*ethclient.Client, error) {
+	client, err := ethclient.Dial(httpUrl)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("we have a connection")
 	return client, nil
 }
 
@@ -116,15 +114,20 @@ func LaunchNewPrinterInstance(client *ethclient.Client, privateKeyText string) (
 
 func main() {
 
-	client, err := ClientConnect()
+	fmt.Println("[printer-server]", "")
+	client, err := ClientConnect("http://localhost:7545")
 
 	if err != nil {
 		fmt.Printf("Error")
 		return
 	}
 
+	var privateKeyText string
+	fmt.Print("[printer-server]", "Please enter your private key of the account that have ETH: ")
+	fmt.Scanln(&privateKeyText)
+
 	// for testing only
-	privateKeyText := "13482978186b307917623a14ea4f9f678855973ae08d006c1b91b1182a0bb1ed"
+	// privateKeyText := "13482978186b307917623a14ea4f9f678855973ae08d006c1b91b1182a0bb1ed"
 
 	address, tx, instance, err := LaunchNewPrinterInstance(client, privateKeyText)
 	if err != nil {

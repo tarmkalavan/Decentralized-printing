@@ -4,8 +4,8 @@
 // It will be used by the Solidity compiler to validate its version.
 pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
+import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
+// import "hardhat/console.sol";
 import "./interfaces/ITransaction.sol";
 
 enum PrinterState {
@@ -143,7 +143,7 @@ contract Printer is Ownable {
     }
 
     function clearance() external {
-        console.log("in printer clearance");
+        // console.log("in printer clearance");
         require(msg.sender == printerData.onGoing, "invalid");
         printerData.state = PrinterState.Ready;
     }
