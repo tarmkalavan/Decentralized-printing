@@ -46,7 +46,7 @@ func main() {
 	fmt.Println(blockNum)
 
 	// for testing only
-	privateKeyText := "c0b5b7ef9d8479f4b29515d3bacd0628acef153f7e665bc6d1d97b8e95beb637"
+	privateKeyText := ""
 
 	// fmt.Println(balance)
 	privateKey, err := crypto.HexToECDSA(privateKeyText)
