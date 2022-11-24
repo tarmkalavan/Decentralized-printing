@@ -11,7 +11,9 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -246,7 +248,7 @@ func Working(client *ethclient.Client, privateKeyText string, lastTransaction co
 func main() {
 
 	fmt.Println("[printer-server]", " Connecting...")
-	client, err := ClientConnect("http://192.168.1.42:8501")
+	client, err := ClientConnect("http://172.20.10.3:8501")
 
 	if err != nil {
 		fmt.Printf("Error")
@@ -320,24 +322,43 @@ func main() {
 
 	lastTransaction := common.HexToAddress("0x0000000000000000000000000000000000000000")
 
-	for {
+	cancelChan := make(chan os.Signal, 1)
+	// catch SIGETRM or SIGINTERRUPT
+	signal.Notify(cancelChan, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		// start your software here. Maybe your need to replace the for loop with other code
+		for {
 
-		lastTransaction, err = Working(client, privateKeyText, lastTransaction, instance)
-		if err != nil {
-			log.Println(err)
-			auth, e := GetNewTransactOpt(client, privateKeyText)
-			if e != nil {
-				log.Fatalln(e)
+			lastTransaction, err = Working(client, privateKeyText, lastTransaction, instance)
+			if err != nil {
+				log.Println(err)
+				auth, e := GetNewTransactOpt(client, privateKeyText)
+				if e != nil {
+					log.Fatalln(e)
+				}
+				_, e = centralServer.RemovePrinter(auth, address)
+				if e != nil {
+					log.Fatalln(e)
+				}
+				syscall.Exit(0)
 			}
-			_, e = centralServer.RemovePrinter(auth, address)
-			if e != nil {
-				log.Fatalln(e)
-			}
-			break
+
+			time.Sleep(20 * time.Second)
 		}
-
-		time.Sleep(10 * time.Second)
+	}()
+	sig := <-cancelChan
+	log.Printf("Caught signal %v remove printer", sig)
+	auth, e := GetNewTransactOpt(client, privateKeyText)
+	if e != nil {
+		log.Fatalln(e)
 	}
+	_, e = centralServer.RemovePrinter(auth, address)
+	if e != nil {
+		log.Fatalln(e)
+	}
+	time.Sleep(20 * time.Second)
+	// shutdown other goroutines gracefully
+	// close other resources
 
 	// fmt.Println(balance)
 
