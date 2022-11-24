@@ -23,6 +23,7 @@ import (
 	"github.com/tarmkalavan/Decentralized-printing/printer-server/central_server"
 	"github.com/tarmkalavan/Decentralized-printing/printer-server/printer"
 	"github.com/tarmkalavan/Decentralized-printing/printer-server/transaction"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 func ClientConnect(httpUrl string) (*ethclient.Client, error) {
@@ -268,7 +269,9 @@ func main() {
 	var price int64
 	var centralServerAddressHex string
 	fmt.Print("[printer-server]", " Please enter your private key of the account that have ETH: ")
-	fmt.Scanln(&privateKeyText)
+	password, err := terminal.ReadPassword(0)
+	privateKeyText = string(password)
+	fmt.Println()
 	fmt.Print("[printer-server]", " Please enter your display name: ")
 	fmt.Scanln(&displayName)
 	fmt.Print("[printer-server]", " Please enter your location: ")
@@ -314,11 +317,11 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	printers, err := centralServer.GetPrinters(nil)
-	for _, e := range printers {
-		fmt.Println(e)
-	}
-	fmt.Println(len(printers))
+	// printers, err := centralServer.GetPrinters(nil)
+	// for _, e := range printers {
+	// 	fmt.Println(e)
+	// }
+	// fmt.Println(len(printers))
 
 	lastTransaction := common.HexToAddress("0x0000000000000000000000000000000000000000")
 
@@ -347,6 +350,7 @@ func main() {
 		}
 	}()
 	sig := <-cancelChan
+	fmt.Println()
 	log.Printf("Caught signal %v remove printer", sig)
 	auth, e := GetNewTransactOpt(client, privateKeyText)
 	if e != nil {
@@ -356,7 +360,7 @@ func main() {
 	if e != nil {
 		log.Fatalln(e)
 	}
-	time.Sleep(20 * time.Second)
+	time.Sleep(10 * time.Second)
 	// shutdown other goroutines gracefully
 	// close other resources
 
