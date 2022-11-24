@@ -163,7 +163,10 @@ contract Printer is Ownable {
     }
 
     function updatePrinterState(PrinterState _state) external {
-        require(msg.sender == printerData.onGoing, "invalid sender");
+        require(
+            msg.sender == printerData.onGoing || msg.sender == owner(),
+            "invalid sender"
+        );
         printerData.state = _state;
     }
 
