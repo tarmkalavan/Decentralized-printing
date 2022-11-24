@@ -167,19 +167,12 @@ func Working(client *ethclient.Client, privateKeyText string, lastTransaction co
 		}
 
 		_ = stdout
+
 		auth, err := GetNewTransactOpt(client, privateKeyText)
 		if err != nil {
 			return lastTransaction, err
 		}
-		_, err = _transaction.UpdateTxState(auth, 3)
-		if err != nil {
-			return lastTransaction, err
-		}
-		auth, err = GetNewTransactOpt(client, privateKeyText)
-		if err != nil {
-			return lastTransaction, err
-		}
-		_, err = instance.UpdatePrinterState(auth, 2)
+		_, err = instance.Finished(auth)
 		if err != nil {
 			return lastTransaction, err
 		}
