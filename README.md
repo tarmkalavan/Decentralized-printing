@@ -16,6 +16,7 @@ The project is structured as follows:
   - `printer-node` : contains the code for integrating a printer with our project. This was implemented in Go.
 
 More details can be found in `final_presentation.pdf`
+
 # Set-up & Installation
 ## Contract
 1.
@@ -23,3 +24,9 @@ More details can be found in `final_presentation.pdf`
 1.
 ## Printer-node
 1.
+
+# Team members
+1. 6230252121 Tarm Kalavantavanich
+2. 6231301421 Kanokpich Chaiyawan
+3. 6231350121 Puwadol Vichitbandha
+4. 6232002021 Khajornphong Phimmuang
