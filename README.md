@@ -15,6 +15,7 @@ The project is structured as follows:
   - `frontend` : contains the code for the frontend UI. Although users may interact with contracts directly (or however they wish), this web UI was created for convenience and demostration purposes.
   - `printer-node` : contains the code for integrating a printer with our project. This was implemented in Go.
 
+More details can be found in `final_presentation.pdf`
 # Set-up & Installation
 ## Contract
 1.
