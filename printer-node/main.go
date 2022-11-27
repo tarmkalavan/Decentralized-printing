@@ -20,9 +20,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/tarmkalavan/Decentralized-printing/printer-server/central_server"
-	"github.com/tarmkalavan/Decentralized-printing/printer-server/printer"
-	"github.com/tarmkalavan/Decentralized-printing/printer-server/transaction"
+	"github.com/tarmkalavan/Decentralized-printing/printer-node/central_server"
+	"github.com/tarmkalavan/Decentralized-printing/printer-node/printer"
+	"github.com/tarmkalavan/Decentralized-printing/printer-node/transaction"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -246,10 +246,36 @@ func Working(client *ethclient.Client, privateKeyText string, lastTransaction co
 
 }
 
+func IsPrinterAvailable() (bool, string) {
+	cmd := exec.Command("lpinfo", "-v")
+	stdout, err := cmd.Output()
+	if err != nil {
+		fmt.Println(err.Error())
+		return false, err.Error()
+	}
+	arrayout := strings.Split(string(stdout[:]), "\n")
+	for _, e := range arrayout {
+		if true || strings.Split(e, " ")[0] == "direct" {
+			cmd := exec.Command("lpstat", "-d")
+			stdout_stat, err := cmd.Output()
+			if err != nil {
+				fmt.Println(err.Error())
+				return false, err.Error()
+			}
+			return true, string(stdout_stat)
+		}
+	}
+	return false, err.Error()
+}
+
 func main() {
 
+	var httpRpcUrl string
+	fmt.Print("[printer-server]", " Please enter HTTP-RPC endpoint to connect the chain (with http://): ")
+	fmt.Scanln(&httpRpcUrl)
+
 	fmt.Println("[printer-server]", " Connecting...")
-	client, err := ClientConnect("http://172.20.10.3:8501")
+	client, err := ClientConnect(httpRpcUrl)
 
 	if err != nil {
 		fmt.Printf("Error")
@@ -361,78 +387,4 @@ func main() {
 		log.Fatalln(e)
 	}
 	time.Sleep(10 * time.Second)
-	// shutdown other goroutines gracefully
-	// close other resources
-
-	// fmt.Println(balance)
-
-	// cmd := exec.Command("lpinfo", "-v")
-	// stdout, err := cmd.Output()
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	return
-	// }
-	// arrayout := strings.Split(string(stdout[:]), "\n")
-	// // fmt.Println(string(stdout))
-
-	// var menu int
-	// for true {
-	// 	fmt.Println("0 exit\n1 show printer\n2 enter (type printer name)\n3 Print")
-	// 	fmt.Scanln(&menu)
-	// 	if menu == 0 {
-	// 		break
-	// 	} else if menu == 1 {
-	// 		if isAvailable(arrayout) {
-	// 			fmt.Println("Printer available")
-	// 		} else {
-	// 			fmt.Println("Printer not available")
-	// 		}
-	// 	} else if menu == 3 {
-	// 		if isAvailable(arrayout) {
-	// 			fileName := "DocX.pdf"
-	// 			fmt.Println("Enter file url")
-	// 			var fileURL string
-	// 			fmt.Scanln(&fileURL)
-
-	// 			err := downloadFile(fileURL, fileName)
-	// 			if err != nil {
-	// 				log.Fatal(err)
-	// 			}
-	// 			fmt.Printf("File %s downlaod in current working directory", fileName)
-
-	// 			cmd := exec.Command("lp", fileName)
-	// 			stdout, err := cmd.Output()
-	// 			if err != nil {
-	// 				fmt.Println(err.Error())
-	// 				return
-	// 			}
-	// 			fmt.Println(string(stdout))
-	// 		} else {
-	// 			fmt.Println("No printer")
-	// 		}
-	// 	}
-	// 	// fmt.Println("---------------------------------------\n")
-	// }
-}
-
-func IsPrinterAvailable() (bool, string) {
-	cmd := exec.Command("lpinfo", "-v")
-	stdout, err := cmd.Output()
-	if err != nil {
-		fmt.Println(err.Error())
-		return false, err.Error()
-	}
-	arrayout := strings.Split(string(stdout[:]), "\n")
-	for _, e := range arrayout {
-		if true || strings.Split(e, " ")[0] == "direct" {
-			cmd := exec.Command("lpstat", "-d")
-			stdout_stat, err := cmd.Output()
-			if err != nil {
-				fmt.Println(err.Error())
-				return false, err.Error()
-			}
-			return true, string(stdout_stat)
-		}
-	}
-	return false, err.Error()
 }
